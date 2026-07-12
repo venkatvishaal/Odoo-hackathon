@@ -58,6 +58,21 @@ const Trip = sequelize.define('Trip', {
   completed_at: {
     type: DataTypes.DATE,
     allowNull: true
+  },
+  is_shared: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+    defaultValue: false
+  },
+  price_quote: {
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: true,
+    defaultValue: 0
+  },
+  route_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: { model: 'routes', key: 'id' }
   }
 }, {
   tableName: 'trips',

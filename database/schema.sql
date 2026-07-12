@@ -73,6 +73,23 @@ CREATE TABLE IF NOT EXISTS drivers (
 CREATE INDEX IF NOT EXISTS idx_drivers_status         ON drivers(status);
 CREATE INDEX IF NOT EXISTS idx_drivers_license_expiry ON drivers(license_expiry_date);
 
+-- ── 4.5 ROUTES ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS routes (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    vehicle_id          UUID NOT NULL REFERENCES vehicles(id) ON DELETE CASCADE,
+    source              VARCHAR(200) NOT NULL,
+    destination         VARCHAR(200) NOT NULL,
+    intermediate_points JSONB DEFAULT '[]'::jsonb,
+    departure_time      TIMESTAMPTZ,
+    estimated_arrival   TIMESTAMPTZ,
+    price_per_kg        NUMERIC(10,2) NOT NULL DEFAULT 0 CHECK (price_per_kg >= 0),
+    is_active           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_routes_vehicle_id ON routes(vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_routes_active     ON routes(is_active);
+
 -- ── 5. TRIPS ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS trips (
     id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,6 +102,9 @@ CREATE TABLE IF NOT EXISTS trips (
     status               VARCHAR(20) NOT NULL DEFAULT 'Draft',
     final_odometer       NUMERIC(12,2),
     fuel_consumed_liters NUMERIC(8,2),
+    is_shared            BOOLEAN DEFAULT FALSE,
+    price_quote          NUMERIC(12, 2) DEFAULT 0,
+    route_id             UUID REFERENCES routes(id) ON DELETE SET NULL,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     dispatched_at        TIMESTAMPTZ,
     completed_at         TIMESTAMPTZ,
@@ -163,3 +183,17 @@ LEFT JOIN (
     SELECT vehicle_id, SUM(cost) AS total_maintenance_cost
     FROM maintenance_logs WHERE status = 'closed' GROUP BY vehicle_id
 ) maint_agg ON maint_agg.vehicle_id = v.id;
+
+-- ── 9. TRACKING CHECKPOINTS ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS tracking (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    trip_id     UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    location    VARCHAR(200) NOT NULL,
+    latitude    NUMERIC(9,6) NOT NULL,
+    longitude   NUMERIC(9,6) NOT NULL,
+    status      VARCHAR(50) NOT NULL DEFAULT 'in_transit',
+    notes       TEXT,
+    timestamp   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tracking_trip_id ON tracking(trip_id);
+

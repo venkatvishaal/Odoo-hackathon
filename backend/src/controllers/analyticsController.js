@@ -68,9 +68,9 @@ const analyticsController = {
           [sequelize.fn('SUM', sequelize.col('fuel_consumed_liters')), 'total_fuel']
         ],
         where: { status: 'Completed', fuel_consumed_liters: { [Op.gt]: 0 } },
-        group: ['vehicle_id'],
+        group: ['Trip.vehicle_id', 'vehicle.id', 'vehicle.registration_number', 'vehicle.model_name'],
         include: [{ model: Vehicle, as: 'vehicle', attributes: ['registration_number', 'model_name'] }],
-        order: [[sequelize.literal('"total_distance" / NULLIF("total_fuel", 0)'), 'DESC']],
+        order: [[sequelize.literal('SUM("planned_distance") / NULLIF(SUM("fuel_consumed_liters"), 0)'), 'DESC']],
         limit: 10,
         raw: false
       });

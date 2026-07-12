@@ -7,6 +7,6 @@ const { validators, handleValidationErrors } = require('../middleware/validation
 router.use(authMiddleware);
 
 router.get('/', expenseController.getAll);
-router.post('/', authorize('fleet_manager', 'driver'), validators.createExpense, handleValidationErrors, expenseController.create);
+router.post('/', authorize('fleet_manager', 'driver', 'financial_analyst'), validators.createExpense, handleValidationErrors, expenseController.create);
 
 module.exports = router;

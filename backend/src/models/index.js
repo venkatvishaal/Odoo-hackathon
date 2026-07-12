@@ -6,6 +6,8 @@ const Trip = require('./Trip');
 const MaintenanceLog = require('./MaintenanceLog');
 const FuelLog = require('./FuelLog');
 const Expense = require('./Expense');
+const Route = require('./Route');
+const Tracking = require('./Tracking');
 
 // ── User ↔ Role ────────────────────────────────────────
 Role.hasMany(User, { foreignKey: 'role_id', as: 'users' });
@@ -20,6 +22,18 @@ Vehicle.hasMany(Trip, { foreignKey: 'vehicle_id', as: 'trips' });
 Vehicle.hasMany(MaintenanceLog, { foreignKey: 'vehicle_id', as: 'maintenance_logs' });
 Vehicle.hasMany(FuelLog, { foreignKey: 'vehicle_id', as: 'fuel_logs' });
 Vehicle.hasMany(Expense, { foreignKey: 'vehicle_id', as: 'expenses' });
+
+// ── Vehicle ↔ Routes ───────────────────────────────────
+Vehicle.hasMany(Route, { foreignKey: 'vehicle_id', as: 'routes' });
+Route.belongsTo(Vehicle, { foreignKey: 'vehicle_id', as: 'vehicle' });
+
+// ── Route ↔ Trips ──────────────────────────────────────
+Route.hasMany(Trip, { foreignKey: 'route_id', as: 'trips' });
+Trip.belongsTo(Route, { foreignKey: 'route_id', as: 'route' });
+
+// ── Trip ↔ Tracking Checkpoints ────────────────────────
+Trip.hasMany(Tracking, { foreignKey: 'trip_id', as: 'tracking_checkpoints' });
+Tracking.belongsTo(Trip, { foreignKey: 'trip_id', as: 'trip' });
 
 // ── Driver → Trips ─────────────────────────────────────
 Driver.hasMany(Trip, { foreignKey: 'driver_id', as: 'trips' });
@@ -45,5 +59,7 @@ module.exports = {
   Trip,
   MaintenanceLog,
   FuelLog,
-  Expense
+  Expense,
+  Route,
+  Tracking
 };

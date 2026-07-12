@@ -13,6 +13,7 @@ import MaintenancePage from './pages/MaintenancePage';
 import FuelExpensePage from './pages/FuelExpensePage';
 import ReportsPage from './pages/ReportsPage';
 import SharedShipmentSearch from './pages/SharedShipmentSearch';
+import ShipperTracking from './pages/ShipperTracking';
 
 import Navbar from './components/layout/Navbar';
 import PrivateRoute from './components/layout/PrivateRoute';
@@ -106,6 +107,10 @@ export default function App() {
                 </PrivateRoute>
               } 
             />
+
+            {/* Public Tracking Portal */}
+            <Route path="/track" element={<ShipperTracking />} />
+            <Route path="/track/:tripId" element={<ShipperTracking />} />
 
             {/* Fallbacks */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

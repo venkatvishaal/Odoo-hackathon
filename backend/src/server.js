@@ -1,0 +1,114 @@
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+require('dotenv').config();
+
+const sequelize = require('./config/database');
+const AppError = require('./utils/AppError');
+
+// Import routes
+const authRoutes = require('./routes/auth');
+const vehicleRoutes = require('./routes/vehicles');
+const driverRoutes = require('./routes/drivers');
+const tripRoutes = require('./routes/trips');
+const maintenanceRoutes = require('./routes/maintenance');
+const fuelRoutes = require('./routes/fuelLogs');
+const expenseRoutes = require('./routes/expenses');
+const reportRoutes = require('./routes/reports');
+const trackingRoutes = require('./routes/tracking');
+
+const app = express();
+const server = http.createServer(app);
+
+// Socket.io Setup
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  }
+});
+
+app.set('io', io);
+
+// Middleware
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+app.use(morgan('dev'));
+app.use(express.json());
+
+// Socket.io Connection Room Setup
+io.on('connection', (socket) => {
+  console.log(`Socket connected: ${socket.id}`);
+  
+  socket.on('join', (room) => {
+    console.log(`Socket ${socket.id} joined room: ${room}`);
+    socket.join(room);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Socket disconnected: ${socket.id}`);
+  });
+});
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/drivers', driverRoutes);
+app.use('/api/trips', tripRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/fuel-logs', fuelRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/tracking', trackingRoutes);
+
+// Fallback route
+app.use((req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || 'error';
+
+  console.error('SERVER ERROR 💥:', err);
+
+  if (err.isOperational) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      errors: err.errors || undefined
+    });
+  }
+
+  // Programmer or other unknown error: don't leak details
+  return res.status(500).json({
+    success: false,
+    message: 'Something went wrong on the server'
+  });
+});
+
+const PORT = process.env.PORT || 5000;
+
+const startServer = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection has been established successfully.');
+    
+    server.listen(PORT, () => {
+      console.log(`TransitOps server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+    });
+  } catch (error) {
+    console.error('Unable to start TransitOps server:', error);
+    process.exit(1);
+  }
+};
+
+startServer();

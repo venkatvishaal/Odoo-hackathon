@@ -9,7 +9,7 @@ import Modal from '../components/ui/Modal';
 import PayloadGauge from '../components/ui/PayloadGauge';
 import { toast } from 'react-toastify';
 import api from '../services/api';
-import { FaRoute, FaPlus, FaCheck, FaBan, FaPlay, FaArrowRight, FaGasPump, FaTachometerAlt, FaShareAlt } from 'react-icons/fa';
+import { FaRoute, FaPlus, FaCheck, FaBan, FaPlay, FaArrowRight, FaGasPump, FaTachometerAlt, FaShareAlt, FaMapMarkerAlt } from 'react-icons/fa';
 
 export default function TripPlanner() {
   const dispatch = useDispatch();
@@ -47,6 +47,17 @@ export default function TripPlanner() {
     price_per_kg: ''
   });
   const [shareLoading, setShareLoading] = useState(false);
+
+  // Live Tracking checkpoint modal
+  const [showTrackingModal, setShowTrackingModal] = useState(null);
+  const [trackingForm, setTrackingForm] = useState({
+    location: '',
+    latitude: '',
+    longitude: '',
+    status: 'in_transit',
+    notes: ''
+  });
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   const selectedVehicleObj = eligibleVehicles.find(v => v.id === form.vehicle_id);
 
@@ -218,6 +229,21 @@ export default function TripPlanner() {
 
                     {t.status === 'Dispatched' && (
                       <>
+                        <button
+                          onClick={() => {
+                            setShowTrackingModal(t);
+                            setTrackingForm({
+                              location: '',
+                              latitude: '18.5204',
+                              longitude: '73.8567',
+                              status: 'in_transit',
+                              notes: ''
+                            });
+                          }}
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                        >
+                          <FaMapMarkerAlt /> Update Location
+                        </button>
                         <button
                           onClick={() => {
                             setShowShareModal(t);
@@ -543,6 +569,118 @@ export default function TripPlanner() {
                 className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold py-3 rounded-lg text-sm shadow-sm"
               >
                 {shareLoading ? 'Publishing...' : '🚀 Publish Route'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Live Location Checkpoint Update Modal */}
+        <Modal isOpen={!!showTrackingModal} onClose={() => setShowTrackingModal(null)} title="Update Live Location">
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!showTrackingModal?.id) return;
+            setTrackingLoading(true);
+            try {
+              await api.post('/tracking', {
+                trip_id: showTrackingModal.id,
+                location: trackingForm.location,
+                latitude: parseFloat(trackingForm.latitude),
+                longitude: parseFloat(trackingForm.longitude),
+                status: trackingForm.status,
+                notes: trackingForm.notes
+              });
+              toast.success('Live location updated successfully!');
+              setShowTrackingModal(null);
+            } catch (err) {
+              toast.error(err.response?.data?.message || 'Failed to update location');
+            } finally {
+              setTrackingLoading(false);
+            }
+          }} className="space-y-4">
+            <div className="bg-indigo-50 border border-indigo-200 text-indigo-800 p-4 rounded-xl text-xs space-y-1">
+              <p>📍 <strong>Route:</strong> {showTrackingModal?.source} ➔ {showTrackingModal?.destination}</p>
+              <p>🚙 <strong>Vehicle:</strong> {showTrackingModal?.vehicle?.registration_number}</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Current Checkpoint / City Name</label>
+              <input
+                required
+                placeholder="e.g. Pune Highway Toll Plaza"
+                value={trackingForm.location}
+                onChange={e => setTrackingForm({ ...trackingForm, location: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Latitude</label>
+                <input
+                  required
+                  type="number"
+                  step="0.000001"
+                  placeholder="18.5204"
+                  value={trackingForm.latitude}
+                  onChange={e => setTrackingForm({ ...trackingForm, latitude: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Longitude</label>
+                <input
+                  required
+                  type="number"
+                  step="0.000001"
+                  placeholder="73.8567"
+                  value={trackingForm.longitude}
+                  onChange={e => setTrackingForm({ ...trackingForm, longitude: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Transit Status</label>
+                <select
+                  value={trackingForm.status}
+                  onChange={e => setTrackingForm({ ...trackingForm, status: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-700 bg-white"
+                >
+                  <option value="in_transit">🚛 In Transit</option>
+                  <option value="picked_up">📦 Picked Up</option>
+                  <option value="out_for_delivery">🏍️ Out for Delivery</option>
+                  <option value="Completed">✅ Delivered</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Log Notes (optional)</label>
+              <textarea
+                placeholder="e.g. Traffic clear, moving at 60 km/h."
+                value={trackingForm.notes}
+                onChange={e => setTrackingForm({ ...trackingForm, notes: e.target.value })}
+                rows="2"
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowTrackingModal(null)}
+                className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-3 rounded-lg text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={trackingLoading}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold py-3 rounded-lg text-sm shadow-sm"
+              >
+                {trackingLoading ? 'Saving...' : '📍 Save Checkpoint'}
               </button>
             </div>
           </form>

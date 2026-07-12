@@ -88,6 +88,11 @@ export default function Navbar() {
               </>
             )}
 
+            {/* Public/Shared Cargo tracking */}
+            <Link to="/track" className="text-sm font-bold bg-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-900 transition">
+              📦 Track Cargo
+            </Link>
+
             {/* Shared Fleet — visible to all roles */}
             <Link to="/shared-search" className="text-sm font-bold bg-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-900 transition">
               🚀 Find Shared Cargo
@@ -108,6 +113,9 @@ export default function Navbar() {
           </>
         ) : (
           <>
+            <Link to="/track" className="text-sm font-semibold hover:text-blue-200 transition mr-2">
+              📦 Track Cargo
+            </Link>
             <Link to="/login" className="text-sm hover:text-blue-200 transition">
               Login
             </Link>
