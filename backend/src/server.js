@@ -23,10 +23,16 @@ const trackingRoutes = require('./routes/tracking');
 const app = express();
 const server = http.createServer(app);
 
+// CORS — allow localhost in dev AND the deployed Vercel URL in prod
+const allowedOrigins = [
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 // Socket.io Setup
 const io = socketIo(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
@@ -35,12 +41,17 @@ const io = socketIo(server, {
 app.set('io', io);
 
 // Middleware
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false })); // CSP disabled for Socket.io compatibility
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, cb) => {
+    // Allow requests with no origin (curl, mobile apps)
+    if (!origin) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true
 }));
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 
 // Socket.io Connection Room Setup
@@ -81,6 +92,9 @@ io.on('connection', (socket) => {
 
 
 // Routes
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/drivers', driverRoutes);
