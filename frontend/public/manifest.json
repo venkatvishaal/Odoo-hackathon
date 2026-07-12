@@ -1,0 +1,8 @@
+{
+  "short_name": "TransitOps",
+  "name": "TransitOps Smart Control",
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1e40af",
+  "background_color": "#ffffff"
+}
