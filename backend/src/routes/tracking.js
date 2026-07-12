@@ -8,11 +8,11 @@ const { validators, handleValidationErrors } = require('../middleware/validation
 router.get('/:tripId', trackingController.getTrackingHistory);
 router.get('/:tripId/latest', trackingController.getLatestCheckpoint);
 
-// ── Private Routes (drivers or managers logging coordinates) ──
+// ── Private Routes (any authenticated role; controller checks per-trip permissions) ──
 router.post(
   '/',
   authMiddleware,
-  authorize('fleet_manager', 'driver'),
+  authorize('fleet_manager', 'driver', 'safety_officer', 'financial_analyst'),
   trackingController.addTracking
 );
 

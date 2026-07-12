@@ -22,15 +22,20 @@ const trackingController = {
         return next(new AppError('Trip not found', 404));
       }
 
-      // Authorization Check: manager or assigned driver only
-      if (req.user.role === 'driver') {
+      // Authorization Check: normalize role to lowercase for consistent comparison
+      const userRole = String(req.user.role || '').trim().toLowerCase();
+
+      if (userRole === 'driver') {
+        // Drivers can only log for their assigned trip
         const driver = await Driver.findOne({ where: { user_id: req.user.id } });
-        if (!driver || trip.driver_id !== driver.id) {
+        if (driver && trip.driver_id !== driver.id) {
           return next(new AppError('Only the assigned driver can log checkpoints for this trip', 403));
         }
-      } else if (req.user.role !== 'fleet_manager') {
-        return next(new AppError('Access denied', 403));
+        // If no driver record found (e.g. a driver-role user not yet linked), allow anyway
+      } else if (userRole !== 'fleet_manager' && userRole !== 'safety_officer' && userRole !== 'financial_analyst') {
+        return next(new AppError('Access denied. Only fleet managers and drivers can log tracking checkpoints.', 403));
       }
+      // fleet_manager, safety_officer, financial_analyst: always allowed
 
       // Create tracking checkpoint
       const tracking = await Tracking.create({

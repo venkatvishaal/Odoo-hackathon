@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchTrips, createTrip, dispatchTrip, completeTrip, cancelTrip, clearValidationErrors } from '../redux/slices/tripSlice';
 import vehicleService from '../services/vehicleService';
@@ -9,7 +9,8 @@ import Modal from '../components/ui/Modal';
 import PayloadGauge from '../components/ui/PayloadGauge';
 import { toast } from 'react-toastify';
 import api from '../services/api';
-import { FaRoute, FaPlus, FaCheck, FaBan, FaPlay, FaArrowRight, FaGasPump, FaTachometerAlt, FaShareAlt, FaMapMarkerAlt } from 'react-icons/fa';
+import { io } from 'socket.io-client';
+import { FaRoute, FaPlus, FaCheck, FaBan, FaPlay, FaArrowRight, FaGasPump, FaTachometerAlt, FaShareAlt, FaMapMarkerAlt, FaBroadcastTower, FaStop, FaCopy, FaExternalLinkAlt } from 'react-icons/fa';
 
 export default function TripPlanner() {
   const dispatch = useDispatch();
@@ -50,6 +51,7 @@ export default function TripPlanner() {
 
   // Live Tracking checkpoint modal
   const [showTrackingModal, setShowTrackingModal] = useState(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const [trackingForm, setTrackingForm] = useState({
     location: '',
     latitude: '',
@@ -58,6 +60,126 @@ export default function TripPlanner() {
     notes: ''
   });
   const [trackingLoading, setTrackingLoading] = useState(false);
+
+  // Live continuous GPS streaming state
+  const [liveTrip, setLiveTrip] = useState(null);  // which trip is being streamed
+  const liveSocketRef = useRef(null);
+  const watchIdRef = useRef(null);
+
+  // ── Reverse geocode helper (city name from lat/lng) ──────────
+  const reverseGeocode = useCallback(async (lat, lng) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`
+      );
+      const data = await res.json();
+      return (
+        data.address?.city ||
+        data.address?.town ||
+        data.address?.village ||
+        data.address?.county ||
+        data.display_name?.split(',')[0] ||
+        'Current Location'
+      );
+    } catch {
+      return 'Current Location';
+    }
+  }, []);
+
+  // ── Open modal and auto-fetch real GPS ───────────────────────
+  const openTrackingModal = useCallback(async (trip) => {
+    setShowTrackingModal(trip);
+    setTrackingForm({ location: '', latitude: '', longitude: '', status: 'in_transit', notes: '' });
+    setGpsLoading(true);
+
+    if (!navigator.geolocation) {
+      toast.warning('Geolocation not supported by your browser.');
+      setGpsLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const cityName = await reverseGeocode(latitude, longitude);
+        setTrackingForm(prev => ({
+          ...prev,
+          latitude: latitude.toFixed(6),
+          longitude: longitude.toFixed(6),
+          location: cityName
+        }));
+        setGpsLoading(false);
+      },
+      (err) => {
+        console.warn('GPS error:', err.message);
+        toast.warning('Could not fetch GPS. Please enter location manually.');
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, [reverseGeocode]);
+
+  // ── Start Live Tracking (continuous GPS stream via socket) ───
+  const startLiveTracking = useCallback((trip) => {
+    if (liveTrip) {
+      toast.info('Already live tracking another trip. Stop it first.');
+      return;
+    }
+    if (!navigator.geolocation) {
+      toast.error('Geolocation not supported.');
+      return;
+    }
+
+    const socketUrl = process.env.REACT_APP_API_BASE_URL
+      ? process.env.REACT_APP_API_BASE_URL.replace('/api', '')
+      : 'http://localhost:5000';
+
+    const socket = io(socketUrl);
+    socket.emit('join', trip.id);
+    liveSocketRef.current = socket;
+
+    // Watch position and emit every update
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      async (pos) => {
+        const { latitude, longitude, speed } = pos.coords;
+        const cityName = await reverseGeocode(latitude, longitude);
+        socket.emit('driverLocation', {
+          trip_id: trip.id,
+          latitude,
+          longitude,
+          location: cityName,
+          speed: speed ? Math.round(speed * 3.6) : null // m/s → km/h
+        });
+      },
+      (err) => {
+        console.error('Live GPS error:', err);
+        toast.error('GPS stream interrupted: ' + err.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
+    );
+
+    setLiveTrip(trip);
+    toast.success(`🔴 Live tracking started for ${trip.source} → ${trip.destination}`);
+  }, [liveTrip, reverseGeocode]);
+
+  // ── Stop Live Tracking ────────────────────────────────────────
+  const stopLiveTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    if (liveSocketRef.current) {
+      liveSocketRef.current.disconnect();
+      liveSocketRef.current = null;
+    }
+    setLiveTrip(null);
+    toast.info('⏹ Live tracking stopped.');
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopLiveTracking();
+  }, [stopLiveTracking]);
 
   const selectedVehicleObj = eligibleVehicles.find(v => v.id === form.vehicle_id);
 
@@ -185,6 +307,20 @@ export default function TripPlanner() {
                       <p className="text-xs text-gray-400 font-bold uppercase mt-1">
                         Driver: {t.driver?.name} • Vehicle: {t.vehicle?.registration_number} ({t.vehicle?.model_name})
                       </p>
+                      {/* Trip ID — copyable */}
+                      <button
+                        type="button"
+                        title="Copy Trip ID"
+                        onClick={() => {
+                          navigator.clipboard.writeText(t.id);
+                          toast.success('Trip ID copied to clipboard!');
+                        }}
+                        className="mt-1.5 flex items-center gap-1.5 text-[10px] font-mono text-gray-400 hover:text-blue-600 transition group"
+                      >
+                        <FaCopy className="text-gray-300 group-hover:text-blue-500" />
+                        {t.id.slice(0, 8)}…{t.id.slice(-4)}
+                        <span className="text-[9px] font-sans normal-case opacity-0 group-hover:opacity-100 transition text-blue-500">click to copy</span>
+                      </button>
                     </div>
                     <StatusBadge status={t.status} />
                   </div>
@@ -229,21 +365,31 @@ export default function TripPlanner() {
 
                     {t.status === 'Dispatched' && (
                       <>
+                        {/* Manual GPS checkpoint */}
                         <button
-                          onClick={() => {
-                            setShowTrackingModal(t);
-                            setTrackingForm({
-                              location: '',
-                              latitude: '18.5204',
-                              longitude: '73.8567',
-                              status: 'in_transit',
-                              notes: ''
-                            });
-                          }}
+                          onClick={() => openTrackingModal(t)}
                           className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
                         >
-                          <FaMapMarkerAlt /> Update Location
+                          <FaMapMarkerAlt /> Pin Location
                         </button>
+
+                        {/* Live continuous GPS stream */}
+                        {liveTrip?.id === t.id ? (
+                          <button
+                            onClick={stopLiveTracking}
+                            className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm animate-pulse"
+                          >
+                            <FaStop /> Stop Live
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => startLiveTracking(t)}
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                          >
+                            <FaBroadcastTower /> Go Live
+                          </button>
+                        )}
+
                         <button
                           onClick={() => {
                             setShowShareModal(t);
@@ -259,6 +405,19 @@ export default function TripPlanner() {
                           className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
                         >
                           <FaShareAlt /> Share Capacity
+                        </button>
+                        {/* Open customer tracking page */}
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/track/${t.id}`;
+                            navigator.clipboard.writeText(url).then(() =>
+                              toast.success('🔗 Tracking link copied to clipboard!')
+                            );
+                            window.open(url, '_blank');
+                          }}
+                          className="bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
+                        >
+                          <FaExternalLinkAlt /> Open Tracker
                         </button>
                         <button 
                           onClick={() => {
@@ -575,7 +734,7 @@ export default function TripPlanner() {
         </Modal>
 
         {/* Live Location Checkpoint Update Modal */}
-        <Modal isOpen={!!showTrackingModal} onClose={() => setShowTrackingModal(null)} title="Update Live Location">
+        <Modal isOpen={!!showTrackingModal} onClose={() => setShowTrackingModal(null)} title="📍 Pin Location Checkpoint">
           <form onSubmit={async (e) => {
             e.preventDefault();
             if (!showTrackingModal?.id) return;
@@ -589,10 +748,10 @@ export default function TripPlanner() {
                 status: trackingForm.status,
                 notes: trackingForm.notes
               });
-              toast.success('Live location updated successfully!');
+              toast.success('📍 Checkpoint saved and broadcasted to shippers!');
               setShowTrackingModal(null);
             } catch (err) {
-              toast.error(err.response?.data?.message || 'Failed to update location');
+              toast.error(err.response?.data?.message || 'Failed to save checkpoint');
             } finally {
               setTrackingLoading(false);
             }
@@ -602,11 +761,44 @@ export default function TripPlanner() {
               <p>🚙 <strong>Vehicle:</strong> {showTrackingModal?.vehicle?.registration_number}</p>
             </div>
 
+            {/* GPS Status Banner */}
+            {gpsLoading ? (
+              <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl p-3 text-blue-700 text-sm">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full flex-shrink-0" />
+                <span className="font-medium">Fetching your real GPS coordinates...</span>
+              </div>
+            ) : trackingForm.latitude ? (
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl p-3">
+                <div className="text-green-700 text-sm">
+                  <span className="font-bold">✅ GPS Acquired:</span>{' '}
+                  {trackingForm.latitude}, {trackingForm.longitude}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openTrackingModal(showTrackingModal)}
+                  className="text-xs text-blue-600 underline font-semibold"
+                >
+                  Re-fetch
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between bg-yellow-50 border border-yellow-200 rounded-xl p-3">
+                <span className="text-yellow-700 text-sm font-medium">⚠️ GPS unavailable — enter manually</span>
+                <button
+                  type="button"
+                  onClick={() => openTrackingModal(showTrackingModal)}
+                  className="text-xs text-blue-600 underline font-semibold"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Current Checkpoint / City Name</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Location / Checkpoint Name</label>
               <input
                 required
-                placeholder="e.g. Pune Highway Toll Plaza"
+                placeholder="e.g. Lonavala Toll Plaza"
                 value={trackingForm.location}
                 onChange={e => setTrackingForm({ ...trackingForm, location: e.target.value })}
                 className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -620,10 +812,10 @@ export default function TripPlanner() {
                   required
                   type="number"
                   step="0.000001"
-                  placeholder="18.5204"
+                  placeholder="Auto-filled from GPS"
                   value={trackingForm.latitude}
                   onChange={e => setTrackingForm({ ...trackingForm, latitude: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-green-50"
                 />
               </div>
               <div>
@@ -632,10 +824,10 @@ export default function TripPlanner() {
                   required
                   type="number"
                   step="0.000001"
-                  placeholder="73.8567"
+                  placeholder="Auto-filled from GPS"
                   value={trackingForm.longitude}
                   onChange={e => setTrackingForm({ ...trackingForm, longitude: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-green-50"
                 />
               </div>
             </div>

@@ -52,10 +52,33 @@ io.on('connection', (socket) => {
     socket.join(room);
   });
 
+  // ── Real-Time Driver GPS Relay ─────────────────────────────────
+  // Drivers emit 'driverLocation' with their GPS coordinates.
+  // Server relays it instantly to everyone watching that trip room.
+  // No DB write — this is pure real-time streaming.
+  socket.on('driverLocation', ({ trip_id, latitude, longitude, location, speed }) => {
+    if (!trip_id || latitude === undefined || longitude === undefined) return;
+    
+    // Relay to all clients watching this trip (including the shipper portal)
+    io.to(trip_id).emit('trackingUpdated', {
+      id: `live-${Date.now()}`,
+      trip_id,
+      latitude,
+      longitude,
+      location: location || 'Live GPS Position',
+      status: 'in_transit',
+      speed: speed || null,
+      notes: null,
+      timestamp: new Date().toISOString(),
+      isLive: true   // flag so the UI can render it differently
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
   });
 });
+
 
 // Routes
 app.use('/api/auth', authRoutes);
