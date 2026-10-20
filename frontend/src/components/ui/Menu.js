@@ -2,7 +2,8 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { BsThreeDots } from 'react-icons/bs';
 
 // Overflow action menu (WAI-ARIA menu button pattern). items: [{ label, icon, onSelect, danger }]
-export default function Menu({ items, label = 'More actions' }) {
+// buttonLabel/buttonIcon replace the default "More" trigger (e.g. an Export menu).
+export default function Menu({ items, label = 'More actions', buttonLabel = 'More', buttonIcon: ButtonIcon = BsThreeDots }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const buttonRef = useRef(null);
@@ -42,8 +43,8 @@ export default function Menu({ items, label = 'More actions' }) {
         aria-controls={open ? id : undefined}
         onClick={() => setOpen((o) => !o)}
       >
-        <BsThreeDots aria-hidden="true" />
-        <span className="hidden sm:inline" aria-hidden="true">More</span>
+        <ButtonIcon aria-hidden="true" />
+        <span className="hidden sm:inline" aria-hidden="true">{buttonLabel}</span>
       </button>
       {open && (
         <div

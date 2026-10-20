@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import fuelService from '../services/fuelService';
 import expenseService from '../services/expenseService';
 import vehicleService from '../services/vehicleService';
@@ -6,8 +7,36 @@ import tripService from '../services/tripService';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
 import { FaGasPump, FaMoneyBillWave, FaPlus, FaFilter, FaCalendarAlt, FaTruck } from 'react-icons/fa';
+import { BsDownload, BsFileEarmarkExcel, BsFileEarmarkPdf } from 'react-icons/bs';
+import Menu from '../components/ui/Menu';
+import { canExportFinance, exportExcel, exportPdf, fileDate, num, pdfMoney } from '../utils/reportExport';
+
+const FUEL_COLUMNS = [
+  { header: 'Vehicle', key: 'vehicle', width: 20 },
+  { header: 'Litres', key: 'liters', width: 12, numFmt: '0.00' },
+  { header: 'Cost (₹)', key: 'cost', width: 14, numFmt: '₹#,##0.00' },
+  { header: 'Date', key: 'date', width: 14 },
+];
+const EXPENSE_COLUMNS = [
+  { header: 'Vehicle', key: 'vehicle', width: 20 },
+  { header: 'Type', key: 'type', width: 16 },
+  { header: 'Description', key: 'description', width: 40 },
+  { header: 'Amount (₹)', key: 'cost', width: 14, numFmt: '₹#,##0.00' },
+  { header: 'Date', key: 'date', width: 14 },
+];
+
+// Rows exactly as the ledgers show them, plus totals.
+function financeRows(fuelLogs, expenses) {
+  const fuel = fuelLogs.map((l) => ({ vehicle: l.vehicle?.registration_number || '—', liters: num(l.liters), cost: num(l.cost), date: l.date }));
+  const exp = expenses.map((e) => ({ vehicle: e.vehicle?.registration_number || '—', type: e.type, description: e.description || '—', cost: num(e.cost), date: e.date }));
+  const fuelLitres = fuel.reduce((a, r) => a + r.liters, 0);
+  const fuelCost = fuel.reduce((a, r) => a + r.cost, 0);
+  const expCost = exp.reduce((a, r) => a + r.cost, 0);
+  return { fuel, exp, fuelLitres, fuelCost, expCost };
+}
 
 export default function FuelExpensePage() {
+  const role = useSelector((state) => state.auth.user?.role);
   const [activeTab, setActiveTab] = useState('fuel'); // 'fuel' or 'expense'
   const [fuelLogs, setFuelLogs] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -49,6 +78,53 @@ export default function FuelExpensePage() {
       toast.error('Failed to load transaction registers');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runExport = async (format) => {
+    const { fuel, exp, fuelLitres, fuelCost, expCost } = financeRows(fuelLogs, expenses);
+    const name = `transitops_fuel_expenses_${fileDate()}`;
+    try {
+      if (format === 'xlsx') {
+        await exportExcel({
+          fileName: `${name}.xlsx`,
+          sheets: [
+            { name: 'Fuel Register', title: 'Fuel Register', columns: FUEL_COLUMNS, rows: fuel, totals: { vehicle: `Total (${fuel.length})`, liters: fuelLitres, cost: fuelCost } },
+            { name: 'Expense Register', title: 'Expense Register', columns: EXPENSE_COLUMNS, rows: exp, totals: { vehicle: `Total (${exp.length})`, cost: expCost } },
+          ],
+        });
+      } else {
+        await exportPdf({
+          fileName: `${name}.pdf`,
+          title: 'Fleet Transactions',
+          subtitle: 'Fuel receipts and trip expenditures',
+          summary: [
+            ['Fuel entries', String(fuel.length)],
+            ['Total litres', `${fuelLitres.toFixed(2)} L`],
+            ['Total fuel spend', pdfMoney(fuelCost)],
+            ['Expense entries', String(exp.length)],
+            ['Total expenses', pdfMoney(expCost)],
+          ],
+          sections: [
+            {
+              heading: 'Fuel Register',
+              columns: ['Vehicle', 'Litres', 'Cost', 'Date'],
+              rows: fuel.map((r) => [r.vehicle, `${r.liters.toFixed(2)} L`, pdfMoney(r.cost), r.date]),
+              totals: [`Total (${fuel.length})`, `${fuelLitres.toFixed(2)} L`, pdfMoney(fuelCost), ''],
+            },
+            {
+              heading: 'Expense Register',
+              columns: ['Vehicle', 'Type', 'Description', 'Amount', 'Date'],
+              rows: exp.map((r) => [r.vehicle, r.type, r.description, pdfMoney(r.cost), r.date]),
+              totals: [`Total (${exp.length})`, '', '', pdfMoney(expCost), ''],
+            },
+          ],
+        });
+      }
+      toast.success(`${format === 'xlsx' ? 'Excel' : 'PDF'} export downloaded`);
+    } catch (err) {
+      console.error('Export failed:', err);
+      toast.error('Export failed. Please try again.');
     }
   };
 
@@ -105,6 +181,17 @@ export default function FuelExpensePage() {
             </h1>
             <p className="text-gray-500 text-sm mt-1">Audit vehicle fuel receipts and trip expenditures</p>
           </div>
+          {canExportFinance(role) && (
+            <Menu
+              label="Export fuel and expense registers"
+              buttonLabel="Export"
+              buttonIcon={BsDownload}
+              items={[
+                { label: 'Excel workbook (.xlsx)', icon: BsFileEarmarkExcel, onSelect: () => runExport('xlsx') },
+                { label: 'PDF report', icon: BsFileEarmarkPdf, onSelect: () => runExport('pdf') },
+              ]}
+            />
+          )}
         </div>
 
         {/* Tabs */}
