@@ -1,3 +1,105 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Design tokens — "Dispatch board". RGB triplets so Tailwind can apply alpha. */
+:root {
+  --ink: 21 23 26;        /* #15171A */
+  --paper: 245 243 238;   /* #F5F3EE */
+  --surface: 255 255 255;
+  --line: 226 222 213;    /* #E2DED5 */
+  --muted: 107 106 101;   /* #6B6A65 — 4.8:1 on paper */
+  --signal: 242 169 0;    /* #F2A900 — never used as text on light */
+  --ok: 31 122 77;        /* #1F7A4D */
+  --transit: 45 91 134;   /* #2D5B86 */
+  --warn: 154 100 18;     /* #9A6412 — darkened from amber for 5:1 text contrast */
+  --danger: 180 35 24;    /* #B42318 */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+  [id] {
+    scroll-margin-top: 72px;
+  }
+  body {
+    @apply bg-paper font-sans text-[14px] leading-normal text-ink antialiased;
+  }
+  h1, h2, h3 {
+    font-stretch: 85%;
+    letter-spacing: -0.01em;
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--signal));
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: rgb(var(--signal) / 0.35);
+  }
+  dialog::backdrop {
+    background: rgb(var(--ink) / 0.55);
+  }
+}
+
+@layer components {
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded border border-transparent px-3.5 py-2 text-[13px] font-semibold
+      transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap;
+  }
+  .btn-sm { @apply px-2.5 py-1.5 text-xs; }
+  .btn-primary { @apply bg-ink text-paper hover:bg-ink/85; }
+  .btn-signal { @apply bg-signal text-ink hover:bg-signal/85; }
+  .btn-ghost { @apply border-line bg-surface text-ink hover:bg-paper; }
+  .btn-danger { @apply border-danger/30 bg-surface text-danger hover:bg-danger/5; }
+  .btn-icon { @apply inline-flex h-8 w-8 items-center justify-center rounded text-muted transition-colors hover:bg-paper hover:text-ink; }
+
+  /* Forms */
+  .label { @apply mb-1.5 block font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted; }
+  .field {
+    @apply w-full rounded border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted/70
+      transition-colors duration-150 focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink;
+  }
+  .field-error { @apply border-danger focus:border-danger focus:ring-danger; }
+  .error-text { @apply mt-1 text-xs font-medium text-danger; }
+
+  /* Surfaces */
+  .panel { @apply rounded-panel border border-line bg-surface; }
+  .eyebrow { @apply font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted; }
+  .num { @apply font-mono tabular-nums; }
+  /* Condensed freight-signage headline used on the landing page */
+  .display { @apply font-bold leading-[0.98] tracking-[-0.02em]; font-stretch: 75%; text-wrap: balance; }
+
+  /* Data tables */
+  .table { @apply w-full border-collapse text-left text-sm; }
+  .table th { @apply border-b border-line bg-paper/60 px-4 py-2.5 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted; }
+  .table td { @apply border-b border-line/70 px-4 py-3 align-middle; }
+  .table tbody tr { @apply transition-colors hover:bg-paper/50; }
+  .table tbody tr:last-child td { @apply border-b-0; }
+
+  .skeleton { @apply animate-pulse rounded bg-line/60; }
+}
+
+/* Leaflet + toastify blend into the system */
+.leaflet-container { font-family: inherit; }
+.Toastify__toast {
+  font-family: inherit;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid rgb(var(--line));
+  box-shadow: 0 8px 24px rgb(var(--ink) / 0.12);
+  color: rgb(var(--ink));
+}
+.Toastify__progress-bar { height: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

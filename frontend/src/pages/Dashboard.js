@@ -1,165 +1,230 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import io from 'socket.io-client';
+import { BsArrowRight } from 'react-icons/bs';
 import { fetchDashboard } from '../redux/slices/analyticsSlice';
 import KpiCard from '../components/ui/KpiCard';
-import LoadingSpinner from '../components/ui/LoadingSpinner';
-import io from 'socket.io-client';
-import { BsTruck, BsPerson, BsCompass, BsWrench, BsPercent } from 'react-icons/bs';
+import PageHeader from '../components/ui/PageHeader';
+import ErrorBanner from '../components/ui/ErrorBanner';
+import { RollingNumber } from '../components/ui/RollingNumber';
+
+const SOCKET_URL = process.env.REACT_APP_API_BASE_URL
+  ? process.env.REACT_APP_API_BASE_URL.replace('/api', '')
+  : 'http://localhost:5000';
+
+const VEHICLE_STATES = [
+  { key: 'Available', bar: 'bg-ok' },
+  { key: 'On Trip', bar: 'bg-transit' },
+  { key: 'In Shop', bar: 'bg-signal' },
+  { key: 'Retired', bar: 'bg-muted/50' },
+];
+
+const DRIVER_STATES = [
+  { key: 'Available', bar: 'bg-ok' },
+  { key: 'On Trip', bar: 'bg-transit' },
+  { key: 'Off Duty', bar: 'bg-muted/50' },
+  { key: 'Suspended', bar: 'bg-danger' },
+];
+
+const QUICK_LINKS = {
+  fleet_manager: [
+    { to: '/trips', label: 'Plan a dispatch', body: 'Create, dispatch and track trips' },
+    { to: '/vehicles', label: 'Fleet registry', body: 'Register or retire vehicles' },
+    { to: '/maintenance', label: 'Schedule maintenance', body: 'Open and close service logs' },
+  ],
+  driver: [
+    { to: '/trips', label: 'My trips', body: 'Dispatches assigned to you' },
+    { to: '/fuel-logs', label: 'Log fuel', body: 'Record a fill-up against a trip' },
+  ],
+  safety_officer: [
+    { to: '/drivers', label: 'Driver compliance', body: 'Licences and safety scores' },
+  ],
+  financial_analyst: [
+    { to: '/reports', label: 'Financial reports', body: 'Operating cost and ROI per asset' },
+    { to: '/fuel-logs', label: 'Expenses', body: 'Fuel and trip expense ledger' },
+  ],
+};
+
+function LiveIndicator({ status }) {
+  const map = {
+    connected: { dot: 'bg-ok', text: 'Live', ping: true },
+    connecting: { dot: 'bg-signal', text: 'Connecting…' },
+    offline: { dot: 'bg-danger', text: 'Offline — showing last data' },
+  };
+  const s = map[status];
+  return (
+    <span role="status" className="inline-flex items-center gap-2 rounded border border-line bg-surface px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.08em] text-muted">
+      <span className="relative flex h-2 w-2" aria-hidden="true">
+        {s.ping && <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-60 ${s.dot}`} />}
+        <span className={`relative inline-flex h-2 w-2 rounded-full ${s.dot}`} />
+      </span>
+      {s.text}
+    </span>
+  );
+}
+
+// Horizontal stacked bar of state counts — a status board, not a decorative chart.
+function StateBoard({ title, counts, states, to, linkLabel }) {
+  const total = states.reduce((sum, s) => sum + (counts[s.key] || 0), 0);
+  return (
+    <section className="panel p-5" aria-labelledby={`board-${title}`}>
+      <div className="flex items-baseline justify-between">
+        <h2 id={`board-${title}`} className="text-base font-semibold">{title}</h2>
+        <span className="num text-sm text-muted">{total} total</span>
+      </div>
+      <div className="mt-4 flex h-2.5 w-full overflow-hidden rounded-full bg-line" aria-hidden="true">
+        {total > 0 && states.map((s) => {
+          const n = counts[s.key] || 0;
+          return n ? <div key={s.key} className={`${s.bar} h-full transition-[width] duration-500`} style={{ width: `${(n / total) * 100}%` }} /> : null;
+        })}
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+        {states.map((s) => (
+          <div key={s.key}>
+            <dt className="flex items-center gap-1.5 text-xs text-muted">
+              <span className={`h-2 w-2 rounded-sm ${s.bar}`} aria-hidden="true" />{s.key}
+            </dt>
+            <dd className="num mt-0.5 text-lg font-semibold"><RollingNumber value={counts[s.key] || 0} /></dd>
+          </div>
+        ))}
+      </dl>
+      {to && (
+        <Link to={to} className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink hover:underline">
+          {linkLabel} <BsArrowRight aria-hidden="true" />
+        </Link>
+      )}
+    </section>
+  );
+}
+
+function TripPipeline({ trips }) {
+  const stages = [
+    { key: 'Draft', label: 'Planned' },
+    { key: 'Dispatched', label: 'On the road' },
+    { key: 'Completed', label: 'Delivered' },
+  ];
+  return (
+    <section className="panel p-5" aria-labelledby="pipeline-title">
+      <div className="flex items-baseline justify-between">
+        <h2 id="pipeline-title" className="text-base font-semibold">Trip pipeline</h2>
+        <span className="num text-sm text-muted">{trips.Cancelled || 0} cancelled</span>
+      </div>
+      <ol className="mt-4 grid grid-cols-3">
+        {stages.map((s, i) => (
+          <li key={s.key} className={`relative pr-3 ${i > 0 ? 'border-l border-line pl-4' : ''}`}>
+            <p className="eyebrow">{String(i + 1).padStart(2, '0')} · {s.label}</p>
+            <p className="num mt-1.5 text-[28px] font-semibold leading-none"><RollingNumber value={trips[s.key] || 0} /></p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div role="status" aria-label="Loading dashboard" className="space-y-6">
+      <div className="panel grid grid-cols-2 divide-x divide-line lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="space-y-3 px-5 py-4"><div className="skeleton h-3 w-24" /><div className="skeleton h-7 w-16" /></div>
+        ))}
+      </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="skeleton h-48" /><div className="skeleton h-48" />
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const dispatch = useDispatch();
   const { data, loading, error } = useSelector((state) => state.analytics);
   const { user } = useSelector((state) => state.auth);
+  const [socketStatus, setSocketStatus] = useState('connecting');
 
   useEffect(() => {
     dispatch(fetchDashboard());
 
-    // Connect to Socket.io room for real-time updates
-    const socket = io(process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000');
-    socket.emit('join', 'fleet');
-    
-    socket.on('fleet:update', (payload) => {
-      console.log('Real-time KPI update received:', payload);
-      dispatch(fetchDashboard());
+    const socket = io(SOCKET_URL);
+    socket.on('connect', () => {
+      setSocketStatus('connected');
+      socket.emit('join', 'fleet');
     });
+    socket.on('disconnect', () => setSocketStatus('offline'));
+    socket.on('connect_error', () => setSocketStatus('offline'));
+    socket.on('fleet:update', () => dispatch(fetchDashboard()));
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => socket.disconnect();
   }, [dispatch]);
 
-  if (loading && !data.vehicles.total) {
-    return <LoadingSpinner />;
-  }
-
-  const activeVehicles = data.vehicles['On Trip'] || 0;
-  const availableVehicles = data.vehicles.Available || 0;
-  const inShopVehicles = data.vehicles['In Shop'] || 0;
-  const activeTrips = data.trips.Dispatched || 0;
-  const activeDrivers = data.drivers['On Trip'] || 0;
+  const firstLoad = loading && !data.vehicles.total;
+  const links = QUICK_LINKS[user?.role] || [];
+  const name = user?.name || user?.username;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-800 flex items-center gap-2">
-              <BsTruck className="text-blue-600 text-3xl" /> Operations Control
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">
-              Welcome back, {user?.name || user?.username}. Real-time operational intelligence.
-            </p>
-          </div>
-          <span className="px-3 py-1 rounded-full text-xs font-bold text-green-700 bg-green-100 border border-green-200 uppercase tracking-wide animate-pulse">
-            ● Real-Time Connected
-          </span>
-        </div>
+    <>
+      <PageHeader
+        eyebrow={new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+        title="Operations control"
+        description={name ? `Welcome back, ${name}. Fleet state updates as trips and vehicles change.` : undefined}
+        actions={<LiveIndicator status={socketStatus} />}
+      />
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6 text-sm">
-            {error}
-          </div>
-        )}
+      <ErrorBanner message={error} onRetry={() => dispatch(fetchDashboard())} />
 
-        {/* Top KPIs Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <KpiCard 
-            title="Available Vehicles" 
-            count={`${availableVehicles} / ${data.vehicles.total}`} 
-            icon={BsTruck} 
-            color="green" 
-          />
-          <KpiCard 
-            title="Active Dispatches" 
-            count={activeTrips} 
-            icon={BsCompass} 
-            color="blue" 
-          />
-          <KpiCard 
-            title="Fleet Utilization" 
-            count={`${data.utilization}%`} 
-            icon={BsPercent} 
-            color="purple" 
-          />
-          <KpiCard 
-            title="Vehicles In Shop" 
-            count={data.openMaintenance} 
-            icon={BsWrench} 
-            color="yellow" 
-          />
-        </div>
+      {firstLoad ? (
+        <DashboardSkeleton />
+      ) : (
+        <div className="space-y-6">
+          <section aria-label="Key figures" className="panel grid grid-cols-2 divide-line lg:grid-cols-4 [&>*:nth-child(odd)]:border-r [&>*:nth-child(n+3)]:border-t lg:[&>*]:border-t-0 lg:[&>*:not(:last-child)]:border-r">
+            <KpiCard title="Available vehicles" value={data.vehicles.Available || 0} suffix={`/ ${data.vehicles.total || 0}`} tone="bg-ok" />
+            <KpiCard title="Active dispatches" value={data.trips.Dispatched || 0} tone="bg-transit" />
+            <KpiCard title="Fleet utilisation" value={data.utilization || 0} suffix="%" hint="On-trip share of active fleet" />
+            <KpiCard title="Open maintenance" value={data.openMaintenance || 0} tone="bg-signal" />
+          </section>
 
-        {/* Role Context Panels */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Operations Overview</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-gray-500 text-sm font-medium">Vehicles on the road</span>
-                <span className="text-gray-800 font-bold text-sm bg-blue-50 px-3 py-1 rounded-lg">{activeVehicles}</span>
-              </div>
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-gray-500 text-sm font-medium">Drivers currently on duty</span>
-                <span className="text-gray-800 font-bold text-sm bg-blue-50 px-3 py-1 rounded-lg">{activeDrivers}</span>
-              </div>
-              <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                <span className="text-gray-500 text-sm font-medium">Pending dispatches (Drafts)</span>
-                <span className="text-gray-800 font-bold text-sm bg-gray-50 px-3 py-1 rounded-lg">{data.trips.Draft || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-500 text-sm font-medium">Completed Deliveries</span>
-                <span className="text-green-600 font-bold text-sm bg-green-50 px-3 py-1 rounded-lg">{data.trips.Completed || 0}</span>
-              </div>
-            </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <StateBoard
+              title="Vehicles"
+              counts={data.vehicles}
+              states={VEHICLE_STATES}
+              to={user?.role === 'fleet_manager' ? '/vehicles' : undefined}
+              linkLabel="Open registry"
+            />
+            <StateBoard
+              title="Drivers"
+              counts={data.drivers}
+              states={DRIVER_STATES}
+              to={['fleet_manager', 'safety_officer'].includes(user?.role) ? '/drivers' : undefined}
+              linkLabel="Open driver registry"
+            />
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-3">Role Actions</h3>
-              <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-4">Quick links</p>
-              
-              <div className="space-y-2">
-                {user?.role === 'fleet_manager' && (
-                  <>
-                    <a href="/vehicles" className="block text-center text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition">
-                      Manage Fleet Registry
-                    </a>
-                    <a href="/maintenance" className="block text-center text-sm font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 py-3 rounded-lg transition">
-                      Schedule Maintenance
-                    </a>
-                  </>
-                )}
-                {user?.role === 'driver' && (
-                  <a href="/trips" className="block text-center text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition">
-                    View Trip List
-                  </a>
-                )}
-                {user?.role === 'safety_officer' && (
-                  <a href="/drivers" className="block text-center text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition">
-                    Driver Licenses & Star Scores
-                  </a>
-                )}
-                {user?.role === 'financial_analyst' && (
-                  <a href="/reports" className="block text-center text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition">
-                    Financial Reports & ROI
-                  </a>
-                )}
-              </div>
-            </div>
+          <div className="grid items-start gap-6 lg:grid-cols-[1.4fr_1fr]">
+            <TripPipeline trips={data.trips} />
 
-            <div className="mt-6 pt-4 border-t border-gray-100 flex items-center gap-3">
-              <div className="bg-blue-50 text-blue-600 p-2.5 rounded-lg">
-                <BsPerson className="text-xl" />
-              </div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase">Current Login</p>
-                <p className="text-sm font-bold text-gray-800">{user?.name || user?.email}</p>
-              </div>
-            </div>
+            {links.length > 0 && (
+              <section className="panel" aria-labelledby="actions-title">
+                <h2 id="actions-title" className="border-b border-line px-5 py-4 text-base font-semibold">Your shortcuts</h2>
+                <ul className="divide-y divide-line">
+                  {links.map((l) => (
+                    <li key={l.to + l.label}>
+                      <Link to={l.to} className="group flex items-center justify-between gap-4 px-5 py-3.5 transition-colors hover:bg-paper/60">
+                        <span>
+                          <span className="block text-sm font-semibold">{l.label}</span>
+                          <span className="block text-xs text-muted">{l.body}</span>
+                        </span>
+                        <BsArrowRight aria-hidden="true" className="text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-ink" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

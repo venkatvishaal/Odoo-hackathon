@@ -1,28 +1,39 @@
 import React from 'react';
 
-const statusColors = {
-  // Vehicle & Driver Statuses
-  Available:  'bg-green-100 text-green-700 border border-green-200',
-  'On Trip':  'bg-blue-100 text-blue-700 border border-blue-200',
-  'In Shop':  'bg-yellow-100 text-yellow-700 border border-yellow-200',
-  Retired:    'bg-red-100 text-red-700 border border-red-200',
-  Suspended:  'bg-red-100 text-red-700 border border-red-200',
-  'Off Duty': 'bg-gray-100 text-gray-600 border border-gray-200',
-  // Trip Statuses
-  Draft:      'bg-gray-100 text-gray-600 border border-gray-200',
-  Dispatched: 'bg-blue-100 text-blue-700 border border-blue-200',
-  Completed:  'bg-green-100 text-green-700 border border-green-200',
-  Cancelled:  'bg-red-100 text-red-700 border border-red-200',
-  // Maintenance Log Statuses
-  open:       'bg-yellow-100 text-yellow-700 border border-yellow-200',
-  closed:     'bg-green-100 text-green-700 border border-green-200'
+// Tone per status; the coloured left tick reads like a route-board marker.
+const tones = {
+  // Vehicle & Driver
+  Available: 'ok',
+  'On Trip': 'transit',
+  'In Shop': 'warn',
+  Retired: 'danger',
+  Suspended: 'danger',
+  'Off Duty': 'neutral',
+  // Trip
+  Draft: 'neutral',
+  Dispatched: 'transit',
+  Completed: 'ok',
+  Cancelled: 'danger',
+  // Maintenance log
+  open: 'warn',
+  closed: 'ok',
 };
 
-export default function StatusBadge({ status }) {
-  const colorClass = statusColors[status] || 'bg-gray-100 text-gray-600 border border-gray-200';
+const toneClass = {
+  ok: 'text-ok before:bg-ok',
+  transit: 'text-transit before:bg-transit',
+  warn: 'text-warn before:bg-warn',
+  danger: 'text-danger before:bg-danger',
+  neutral: 'text-muted before:bg-muted',
+};
+
+export default function StatusBadge({ status, label }) {
+  const tone = toneClass[tones[status] || 'neutral'];
   return (
-    <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${colorClass}`}>
-      {status}
+    <span
+      className={`relative inline-flex items-center whitespace-nowrap rounded-sm border border-line bg-surface py-0.5 pl-3 pr-2 font-mono text-[11px] font-medium uppercase tracking-[0.06em] before:absolute before:inset-y-1 before:left-1 before:w-[3px] before:rounded-full ${tone}`}
+    >
+      {label || status}
     </span>
   );
 }

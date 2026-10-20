@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>TransitOps — User Manual v1.0</title>
+<meta name="description" content="Complete user manual for TransitOps Smart Fleet Operations Management Platform."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --brand:#2563eb;--brand-dark:#1d4ed8;--brand-light:#dbeafe;
+  --accent:#0ea5e9;--success:#16a34a;--warn:#d97706;--danger:#dc2626;
+  --bg:#f8fafc;--surface:#fff;--border:#e2e8f0;
+  --text:#0f172a;--muted:#64748b;
+  --sidebar:280px;--header:64px;
+}
+html{scroll-behavior:smooth;font-size:15px}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+
+/* HEADER */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:var(--header);
+  background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 55%,#0ea5e9 100%);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2rem;
+  box-shadow:0 2px 20px rgba(30,58,138,.4);
+}
+.hbrand{display:flex;align-items:center;gap:.75rem}
+.hlogo{width:36px;height:36px;background:rgba(255,255,255,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.htitle{color:#fff;font-weight:800;font-size:1.15rem;letter-spacing:-.02em}
+.hsub{color:rgba(255,255,255,.7);font-size:.75rem}
+.hbadge{background:rgba(255,255,255,.18);color:#fff;padding:.25rem .8rem;border-radius:20px;font-size:.72rem;font-weight:700;letter-spacing:.06em}
+
+/* SIDEBAR */
+aside{
+  position:fixed;top:var(--header);left:0;bottom:0;width:var(--sidebar);
+  background:var(--surface);border-right:1px solid var(--border);
+  overflow-y:auto;padding:1.25rem 0;z-index:90;
+}
+aside::-webkit-scrollbar{width:3px}
+aside::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.nlabel{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.9rem 1.4rem .3rem}
+.nlink{
+  display:flex;align-items:center;gap:.55rem;
+  padding:.42rem 1.4rem;font-size:.8rem;color:var(--muted);
+  text-decoration:none;border-left:3px solid transparent;transition:all .15s;
+}
+.nlink:hover,.nlink.active{color:var(--brand);background:var(--brand-light);border-left-color:var(--brand)}
+.ni{font-size:.82rem;width:18px;text-align:center}
+
+/* MAIN */
+main{margin-left:var(--sidebar);margin-top:var(--header);padding:2.5rem 3.5rem;max-width:940px}
+
+/* COVER */
+.cover{
+  background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 60%,#0ea5e9 100%);
+  border-radius:16px;padding:3rem;color:#fff;margin-bottom:2.5rem;
+  position:relative;overflow:hidden;
+}
+.cover::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:rgba(255,255,255,.05);border-radius:50%}
+.cover::after{content:'';position:absolute;bottom:-80px;right:80px;width:160px;height:160px;background:rgba(255,255,255,.04);border-radius:50%}
+.ceyebrow{font-size:.7rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:.6rem}
+.cover h1{font-size:2.4rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.4rem;line-height:1.1}
+.csub{font-size:1rem;color:rgba(255,255,255,.8);margin-bottom:1.75rem}
+.chips{display:flex;flex-wrap:wrap;gap:.45rem}
+.chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;padding:.25rem .7rem;border-radius:20px;font-size:.72rem;font-weight:500}
+
+/* SECTIONS */
+.section{margin-bottom:2.75rem}
+.sh{display:flex;align-items:center;gap:.7rem;margin-bottom:1.4rem;padding-bottom:.7rem;border-bottom:2px solid var(--brand-light)}
+.si{width:38px;height:38px;background:linear-gradient(135deg,var(--brand),var(--accent));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;color:#fff;flex-shrink:0}
+h2{font-size:1.35rem;font-weight:700;letter-spacing:-.02em}
+h3{font-size:1rem;font-weight:700;color:var(--text);margin:1.4rem 0 .65rem}
+h4{font-size:.82rem;font-weight:700;color:var(--brand-dark);margin:1.1rem 0 .4rem;text-transform:uppercase;letter-spacing:.05em}
+p{margin-bottom:.8rem;color:#334155}
+ul,ol{padding-left:1.3rem;margin-bottom:.8rem}
+li{margin-bottom:.3rem;color:#334155}
+li strong{color:var(--text)}
+a{color:var(--brand);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:'JetBrains Mono',monospace;font-size:.78em;background:#f1f5f9;color:#0f172a;padding:.1em .38em;border-radius:4px;border:1px solid #e2e8f0}
+pre{background:#0f172a;color:#e2e8f0;padding:1.1rem 1.4rem;border-radius:10px;overflow-x:auto;margin:.9rem 0;font-family:'JetBrains Mono',monospace;font-size:.8rem;line-height:1.75}
+pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+
+/* TABLES */
+.tw{overflow-x:auto;margin:.9rem 0;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+thead th{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff;padding:.65rem .95rem;text-align:left;font-weight:600;font-size:.75rem;letter-spacing:.04em;text-transform:uppercase}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f8fafc}
+td{padding:.6rem .95rem;vertical-align:top;color:#334155}
+td:first-child{font-weight:500;color:var(--text)}
+
+/* CALLOUTS */
+.callout{display:flex;gap:.7rem;padding:.9rem 1.1rem;border-radius:10px;margin:.9rem 0;font-size:.86rem}
+.ci{font-size:1.05rem;flex-shrink:0;margin-top:.1rem}
+.callout b{display:block;margin-bottom:.15rem}
+.tip{background:#f0fdf4;border:1px solid #bbf7d0}
+.tip .ci,.tip b{color:#15803d}
+.warn{background:#fffbeb;border:1px solid #fde68a}
+.warn .ci,.warn b{color:#b45309}
+.info{background:#eff6ff;border:1px solid #bfdbfe}
+.info .ci,.info b{color:#1d4ed8}
+.danger{background:#fef2f2;border:1px solid #fecaca}
+.danger .ci,.danger b{color:#b91c1c}
+
+/* STEPS */
+.steps{counter-reset:s;display:flex;flex-direction:column;gap:.65rem;margin:.9rem 0}
+.step{display:flex;gap:.9rem;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem}
+.sn{counter-increment:s;width:26px;height:26px;flex-shrink:0;background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700}
+.sn::before{content:counter(s)}
+.sb{flex:1;font-size:.86rem}
+.sb strong{display:block;color:var(--text);margin-bottom:.18rem;font-size:.88rem}
+
+/* BADGES */
+.b{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .6rem;border-radius:20px;font-size:.73rem;font-weight:600}
+.b::before{content:'●';font-size:.58rem}
+.bg{background:#dcfce7;color:#15803d}
+.bb{background:#dbeafe;color:#1d4ed8}
+.ba{background:#fef3c7;color:#b45309}
+.br{background:#fee2e2;color:#b91c1c}
+.bk{background:#f1f5f9;color:#475569}
+
+/* FEATURE GRID */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.9rem;margin:.9rem 0}
+.fcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.1rem;transition:box-shadow .2s,transform .2s}
+.fcard:hover{box-shadow:0 4px 18px rgba(37,99,235,.12);transform:translateY(-2px)}
+.ficon{font-size:1.4rem;margin-bottom:.5rem}
+.ftitle{font-weight:700;font-size:.85rem;color:var(--text);margin-bottom:.25rem}
+.fdesc{font-size:.76rem;color:var(--muted);line-height:1.5}
+
+/* ROLE CARDS */
+.rgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:.9rem;margin:.9rem 0}
+.rc{border-radius:12px;padding:1.1rem;border:1px solid var(--border)}
+.rc.fm{background:linear-gradient(135deg,#eff6ff,#dbeafe);border-color:#bfdbfe}
+.rc.dr{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#bbf7d0}
+.rc.sf{background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:#fde68a}
+.rc.fn{background:linear-gradient(135deg,#fdf4ff,#f3e8ff);border-color:#e9d5ff}
+.rc h4{margin-top:0}
+.rc ol,.rc ul{font-size:.8rem;padding-left:1rem}
+
+/* LIFECYCLE */
+.lc{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:.5rem;padding:1.25rem;background:#f8fafc;border-radius:12px;margin:.9rem 0;border:1px solid var(--border)}
+.la{font-size:1rem;color:var(--muted)}
+
+/* FOOTER */
+footer{margin-left:var(--sidebar);padding:1.75rem 3.5rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:.78rem;color:var(--muted)}
+
+/* SCROLL TOP */
+.stbtn{position:fixed;bottom:1.75rem;right:1.75rem;width:38px;height:38px;background:var(--brand);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.95rem;text-decoration:none;box-shadow:0 4px 12px rgba(37,99,235,.4);opacity:0;pointer-events:none;transition:opacity .3s}
+.stbtn.vis{opacity:1;pointer-events:auto}
+
+/* PRINT */
+@media print{
+  aside,header,.stbtn{display:none!important}
+  main,footer{margin-left:0!important}
+  main{padding:1rem 2rem}
+  .section{page-break-inside:avoid}
+  thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media(max-width:768px){
+  aside{display:none}
+  main,footer{margin-left:0;padding:1.5rem}
+  .rgrid{grid-template-columns:1fr}
+  .cover h1{font-size:1.8rem}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hbrand">
+    <div class="hlogo">🚛</div>
+    <div>
+      <div class="htitle">TransitOps</div>
+      <div class="hsub">Smart Fleet Operations Platform</div>
+    </div>
+  </div>
+  <div class="hbadge">USER MANUAL v1.0</div>
+</header>
+
+<aside>
+  <div class="nlabel">Overview</div>
+  <a href="#overview"     class="nlink"><span class="ni">🏠</span> Introduction</a>
+  <a href="#install"      class="nlink"><span class="ni">⚙️</span> Installation</a>
+  <a href="#arch"         class="nlink"><span class="ni">🏗</span> Architecture</a>
+  <a href="#roles"        class="nlink"><span class="ni">👤</span> User Roles</a>
+  <div class="nlabel">Getting Started</div>
+  <a href="#auth"         class="nlink"><span class="ni">🔐</span> Login &amp; Register</a>
+  <a href="#navbar"       class="nlink"><span class="ni">🧭</span> Navigation</a>
+  <a href="#dashboard"    class="nlink"><span class="ni">📊</span> Dashboard</a>
+  <div class="nlabel">Core Modules</div>
+  <a href="#vehicles"     class="nlink"><span class="ni">🚚</span> Vehicle Registry</a>
+  <a href="#drivers"      class="nlink"><span class="ni">👨‍✈️</span> Driver Registry</a>
+  <a href="#trips"        class="nlink"><span class="ni">🗺</span> Trips &amp; Dispatch</a>
+  <a href="#maint"        class="nlink"><span class="ni">🔧</span> Maintenance</a>
+  <a href="#fuel"         class="nlink"><span class="ni">⛽</span> Fuel &amp; Expenses</a>
+  <a href="#reports"      class="nlink"><span class="ni">📈</span> Analytics &amp; Reports</a>
+  <a href="#shared"       class="nlink"><span class="ni">🤝</span> Shared Cargo</a>
+  <a href="#tracker"      class="nlink"><span class="ni">📍</span> Shipment Tracker</a>
+  <div class="nlabel">Reference</div>
+  <a href="#rules"        class="nlink"><span class="ni">📋</span> Business Rules</a>
+  <a href="#api"          class="nlink"><span class="ni">🔌</span> API Reference</a>
+  <a href="#workflows"    class="nlink"><span class="ni">⚡</span> Daily Workflows</a>
+  <a href="#glossary"     class="nlink"><span class="ni">📖</span> Status Glossary</a>
+  <a href="#trouble"      class="nlink"><span class="ni">🛠</span> Troubleshooting</a>
+</aside>
+
+<main>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="ceyebrow">Official Documentation · Confidential</div>
+  <h1>TransitOps<br>User Manual</h1>
+  <p class="csub">Complete guide to fleet management, real-time tracking,<br>driver compliance, and operational analytics.</p>
+  <div class="chips">
+    <span class="chip">Version 1.0</span>
+    <span class="chip">React.js + Node.js</span>
+    <span class="chip">PostgreSQL</span>
+    <span class="chip">Real-Time GPS</span>
+    <span class="chip">4 User Roles</span>
+    <span class="chip">9 Modules</span>
+  </div>
+</div>
+
+<!-- 1. INTRODUCTION -->
+<section class="section" id="overview">
+  <div class="sh"><div class="si">🏠</div><h2>1. Introduction &amp; System Overview</h2></div>
+  <p><strong>TransitOps</strong> is a centralized, real-time fleet operations management platform built for logistics companies. It solves four critical problems in a single unified system:</p>
+  <div class="fgrid">
+    <div class="fcard"><div class="ficon">🗺</div><div class="ftitle">"Where Is My Cargo?"</div><div class="fdesc">Live GPS streaming + interactive Leaflet maps so clients track deliveries in real time.</div></div>
+    <div class="fcard"><div class="ficon">🚛</div><div class="ftitle">Empty Miles Problem</div><div class="fdesc">Shared Capacity Marketplace — publish spare truck space for co-loading and maximize ROI per trip.</div></div>
+    <div class="fcard"><div class="ficon">⚠️</div><div class="ftitle">Compliance Risks</div><div class="fdesc">Automated dispatch gating blocks expired licenses, suspended drivers, and in-shop vehicles.</div></div>
+    <div class="fcard"><div class="ficon">💰</div><div class="ftitle">Financial Chaos</div><div class="fdesc">Centralized analytics computing Vehicle ROI, fuel efficiency, and maintenance burn rates.</div></div>
+  </div>
+  <h3>Core Modules</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Module</th><th>Route</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard</td><td><code>/dashboard</code></td><td>Real-time KPI command center</td></tr>
+      <tr><td>Vehicle Registry</td><td><code>/vehicles</code></td><td>Fleet registration and status management</td></tr>
+      <tr><td>Driver Registry</td><td><code>/drivers</code></td><td>Driver profiles, license compliance, safety scores</td></tr>
+      <tr><td>Trips &amp; Dispatch</td><td><code>/trips</code></td><td>Full trip lifecycle from draft to delivery</td></tr>
+      <tr><td>Maintenance Center</td><td><code>/maintenance</code></td><td>Work orders and service scheduling</td></tr>
+      <tr><td>Fuel &amp; Expenses</td><td><code>/fuel-logs</code></td><td>Fuel fill-up and operational expense ledger</td></tr>
+      <tr><td>Analytics &amp; Reports</td><td><code>/reports</code></td><td>Charts, ROI ledger, and CSV export</td></tr>
+      <tr><td>Shared Cargo</td><td><code>/shared-search</code></td><td>Co-load marketplace for spare vehicle space</td></tr>
+      <tr><td>Shipper Tracker</td><td><code>/track</code></td><td>Public cargo tracking portal — no login needed</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 2. INSTALLATION -->
+<section class="section" id="install">
+  <div class="sh"><div class="si">⚙️</div><h2>2. System Requirements &amp; Installation</h2></div>
+  <h3>Prerequisites</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Software</th><th>Min. Version</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Node.js</td><td>v18+</td><td>Backend runtime and frontend toolchain</td></tr>
+      <tr><td>npm</td><td>v9+</td><td>Package manager</td></tr>
+      <tr><td>PostgreSQL</td><td>v14+</td><td>Primary relational database</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Setup Steps</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Create the database</strong><pre><code>psql -U postgres -c "CREATE DATABASE transitops;"</code></pre></div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Run the schema migration</strong><pre><code>psql -U postgres -d transitops -f database\schema.sql</code></pre></div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Load seed / demo data (recommended)</strong><pre><code>psql -U postgres -d transitops -f database\seed.sql</code></pre></div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Install and start the backend API</strong><pre><code>cd backend &amp;&amp; npm install &amp;&amp; npm start
+# Runs on http://localhost:5000</code></pre></div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Install and start the frontend</strong><pre><code>cd frontend &amp;&amp; npm install &amp;&amp; npm start
+# Runs on http://localhost:3000</code></pre></div></div>
+  </div>
+  <h3>Environment Variables (<code>backend/.env</code>)</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>DB_HOST</code></td><td><code>localhost</code></td><td>PostgreSQL server hostname</td></tr>
+      <tr><td><code>DB_PORT</code></td><td><code>5432</code></td><td>PostgreSQL server port</td></tr>
+      <tr><td><code>DB_NAME</code></td><td><code>transitops</code></td><td>Database name</td></tr>
+      <tr><td><code>DB_USER</code></td><td><code>postgres</code></td><td>Database username</td></tr>
+      <tr><td><code>DB_PASSWORD</code></td><td><em>set this</em></td><td>Database password</td></tr>
+      <tr><td><code>JWT_SECRET</code></td><td><em>change in prod</em></td><td>Secret key for signing auth tokens</td></tr>
+      <tr><td><code>JWT_EXPIRE</code></td><td><code>7d</code></td><td>Session token validity duration</td></tr>
+      <tr><td><code>PORT</code></td><td><code>5000</code></td><td>Backend API port</td></tr>
+      <tr><td><code>FRONTEND_URL</code></td><td><code>http://localhost:3000</code></td><td>Allowed CORS origin</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout danger"><div class="ci">🔒</div><div><b>Security Note</b>Never commit the <code>.env</code> file to version control. The <code>.gitignore</code> already excludes it by default.</div></div>
+</section>
+
+<!-- 3. ARCHITECTURE -->
+<section class="section" id="arch">
+  <div class="sh"><div class="si">🏗</div><h2>3. Architecture Overview</h2></div>
+  <pre><code>┌──────────────────────────────────────────────────────────────┐
+│              FRONTEND  (React.js SPA)                        │
+│  Redux Toolkit · Tailwind CSS · Leaflet Maps · Recharts      │
+│  Runs on → http://localhost:3000                             │
+└──────────────────────┬───────────────────────────────────────┘
+                       │  REST API  +  WebSocket (Socket.io)
+                       ▼
+┌──────────────────────────────────────────────────────────────┐
+│              BACKEND  (Node.js / Express)                    │
+│  JWT Auth · Sequelize ORM · Socket.io · Helmet              │
+│  Runs on → http://localhost:5000                             │
+│                                                              │
+│  /api/auth   /api/vehicles  /api/drivers  /api/trips         │
+│  /api/maintenance  /api/fuel-logs  /api/expenses             │
+│  /api/reports  /api/tracking                                 │
+└──────────────────────┬───────────────────────────────────────┘
+                       │  Sequelize ORM
+                       ▼
+┌──────────────────────────────────────────────────────────────┐
+│              DATABASE  (PostgreSQL 14+)                      │
+│  Tables: roles · users · vehicles · drivers · routes         │
+│          trips · maintenance_logs · fuel_logs · expenses      │
+│          tracking                                            │
+│  View:   vehicle_operational_costs  (aggregate cost view)    │
+└──────────────────────────────────────────────────────────────┘</code></pre>
+  <h3>Real-Time GPS Flow</h3>
+  <pre><code>Driver clicks "Go Live"
+  │
+  ├─ Device GPS → emit('driverLocation', { trip_id, lat, lng })
+  │                              │
+  │                   Backend relays instantly (no DB write)
+  │                              │
+  └─ All tracker viewers ← emit('trackingUpdated', { lat, lng, isLive: true })</code></pre>
+  <div class="callout info"><div class="ci">ℹ️</div><div><b>Live vs. Pinned</b>Live GPS frames are relayed in real-time memory via Socket.io for zero-latency delivery — they are NOT written to the database. Only manually pinned checkpoints (Pin Location) are persisted.</div></div>
+</section>
+
+<!-- 4. ROLES -->
+<section class="section" id="roles">
+  <div class="sh"><div class="si">👤</div><h2>4. User Roles &amp; Access Control</h2></div>
+  <p>TransitOps uses <strong>role-based access control (RBAC)</strong>. Your role is assigned at registration and controls which modules you can access.</p>
+  <div class="rgrid">
+    <div class="rc fm"><h4>🚛 Fleet Manager</h4><ul><li>Full access to all modules</li><li>Register vehicles &amp; drivers</li><li>Create &amp; dispatch trips</li><li>Manage maintenance files</li><li>View all reports &amp; analytics</li></ul></div>
+    <div class="rc dr"><h4>👨‍✈️ Driver</h4><ul><li>View and act on own trips</li><li>Go Live GPS streaming</li><li>Pin location checkpoints</li><li>Log fuel fill-ups</li><li>Browse shared cargo</li></ul></div>
+    <div class="rc sf"><h4>🛡 Safety Officer</h4><ul><li>View driver registry</li><li>Monitor license expiry</li><li>Review safety scores</li><li>Dashboard KPI overview</li><li>Browse shared cargo</li></ul></div>
+    <div class="rc fn"><h4>💹 Financial Analyst</h4><ul><li>Full analytics &amp; reports</li><li>ROI ledger per vehicle</li><li>Fuel economy charts</li><li>Expense ledger audit</li><li>Export CSV reports</li></ul></div>
+  </div>
+  <h3>Page Access Matrix</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Page / Route</th><th>Fleet Mgr</th><th>Driver</th><th>Safety Off.</th><th>Fin. Analyst</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard <code>/dashboard</code></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Vehicles <code>/vehicles</code></td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+      <tr><td>Drivers <code>/drivers</code></td><td>✅</td><td>❌</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Trips <code>/trips</code></td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
+      <tr><td>Maintenance <code>/maintenance</code></td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+      <tr><td>Fuel &amp; Expenses <code>/fuel-logs</code></td><td>✅</td><td>✅</td><td>❌</td><td>✅</td></tr>
+      <tr><td>Reports <code>/reports</code></td><td>✅</td><td>❌</td><td>❌</td><td>✅</td></tr>
+      <tr><td>Shared Cargo <code>/shared-search</code></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Shipment Tracker <code>/track</code> <em>(public)</em></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 5. AUTH -->
+<section class="section" id="auth">
+  <div class="sh"><div class="si">🔐</div><h2>5. Getting Started — Registration &amp; Login</h2></div>
+  <h3>5.1 Registering an Account</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Navigate to <code>http://localhost:3000</code> and click <strong>Register</strong> in the top navbar.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Fill in the registration form:</strong>
+      <div class="tw" style="margin-top:.5rem"><table>
+        <thead><tr><th>Field</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td>Select Role</td><td>✅</td><td>Fleet Manager / Driver / Safety Officer / Financial Analyst</td></tr>
+          <tr><td>Full Name</td><td>✅</td><td>Your display name shown in the navbar</td></tr>
+          <tr><td>Email Address</td><td>✅</td><td>Must be unique — used to log in</td></tr>
+          <tr><td>Phone Number</td><td>❌</td><td>Optional contact number</td></tr>
+          <tr><td>Password</td><td>✅</td><td>Minimum 6 characters</td></tr>
+          <tr><td>Confirm Password</td><td>✅</td><td>Must exactly match the Password field</td></tr>
+        </tbody>
+      </table></div>
+    </div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Register</strong>. On success you are redirected to Login with a green confirmation toast.</div></div>
+  </div>
+  <h3>5.2 Logging In</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Navigate to <code>/login</code>, enter your <strong>Email</strong> and <strong>Password</strong>, then click <strong>Sign In</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">You are redirected to the <strong>Dashboard</strong>. A welcome toast shows: <em>"Welcome back, [Your Name]!"</em></div></div>
+  </div>
+  <div class="callout info"><div class="ci">ℹ️</div><div><b>Session Duration</b>Your JWT session token is valid for 7 days. After expiry you will be redirected to the login page automatically.</div></div>
+</section>
+
+<!-- 6. NAVBAR -->
+<section class="section" id="navbar">
+  <div class="sh"><div class="si">🧭</div><h2>6. Navigation Bar</h2></div>
+  <p>The top navigation bar is always visible when logged in. Links shown depend on your role.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Link</th><th>Visible To</th><th>Destination</th></tr></thead>
+    <tbody>
+      <tr><td>🚛 TransitOps logo</td><td>Everyone</td><td><code>/dashboard</code></td></tr>
+      <tr><td>Dashboard</td><td>Everyone</td><td><code>/dashboard</code></td></tr>
+      <tr><td>Vehicles</td><td>Fleet Manager</td><td><code>/vehicles</code></td></tr>
+      <tr><td>Drivers</td><td>Fleet Manager, Safety Officer</td><td><code>/drivers</code></td></tr>
+      <tr><td>Trips / My Trips</td><td>Fleet Manager, Driver</td><td><code>/trips</code></td></tr>
+      <tr><td>Maintenance</td><td>Fleet Manager</td><td><code>/maintenance</code></td></tr>
+      <tr><td>Fuel &amp; Expenses</td><td>Fleet Manager, Driver, Financial Analyst</td><td><code>/fuel-logs</code></td></tr>
+      <tr><td>Reports</td><td>Fleet Manager, Financial Analyst</td><td><code>/reports</code></td></tr>
+      <tr><td>Track Cargo</td><td>Everyone</td><td><code>/track</code></td></tr>
+      <tr><td>Find Shared Cargo</td><td>Everyone</td><td><code>/shared-search</code></td></tr>
+      <tr><td>Logout</td><td>Everyone</td><td>Clears session → <code>/login</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 7. DASHBOARD -->
+<section class="section" id="dashboard">
+  <div class="sh"><div class="si">📊</div><h2>7. Dashboard — Operations Command Center</h2></div>
+  <p>Route: <code>/dashboard</code> · Access: <strong>All roles</strong></p>
+  <p>The Dashboard auto-updates via WebSocket whenever any vehicle, driver, or trip state changes anywhere in the system — <strong>no page refresh required</strong>.</p>
+  <h3>KPI Cards (Top Row)</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Card</th><th>What It Shows</th></tr></thead>
+    <tbody>
+      <tr><td>Available Vehicles</td><td><code>X / Total</code> — how many vehicles are ready to dispatch</td></tr>
+      <tr><td>Active Dispatches</td><td>Trips currently <span class="b bb">Dispatched</span> (on the road)</td></tr>
+      <tr><td>Fleet Utilization %</td><td><code>(On Trip vehicles / Total non-Retired) × 100</code></td></tr>
+      <tr><td>Vehicles In Shop</td><td>Vehicles with an open maintenance work order</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Operations Overview Panel</h3>
+  <ul>
+    <li><strong>Vehicles on the road</strong> — active <span class="b bb">On Trip</span> count</li>
+    <li><strong>Drivers currently on duty</strong> — active <span class="b bb">On Trip</span> driver count</li>
+    <li><strong>Pending dispatches</strong> — trips in <span class="b ba">Draft</span> status awaiting dispatch</li>
+    <li><strong>Completed deliveries</strong> — historical <span class="b bg">Completed</span> trip count</li>
+  </ul>
+  <h3>Role Quick-Action Panel</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Role</th><th>Quick Action</th></tr></thead>
+    <tbody>
+      <tr><td>Fleet Manager</td><td>Manage Fleet Registry · Schedule Maintenance</td></tr>
+      <tr><td>Driver</td><td>View Trip List</td></tr>
+      <tr><td>Safety Officer</td><td>Driver Licenses &amp; Star Scores</td></tr>
+      <tr><td>Financial Analyst</td><td>Financial Reports &amp; ROI</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 8. VEHICLES -->
+<section class="section" id="vehicles">
+  <div class="sh"><div class="si">🚚</div><h2>8. Vehicle Registry</h2></div>
+  <p>Route: <code>/vehicles</code> · Access: <strong>Fleet Manager only</strong></p>
+  <h3>8.1 Viewing the Fleet</h3>
+  <p>All registered vehicles appear as cards showing: Registration Number, Model, Status Badge, Odometer (KM), Acquisition Cost (Rs.), Operating Region, and Payload Capacity (KG).</p>
+  <h3>8.2 Adding a New Vehicle</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Add Vehicle</strong> (top-right).</div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Fill in the modal:</strong>
+      <div class="tw" style="margin-top:.5rem"><table>
+        <thead><tr><th>Field</th><th>Required</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Registration Number</td><td>✅</td><td><code>TN01AB1234</code></td></tr>
+          <tr><td>Model Name</td><td>✅</td><td><code>Tata Ace Gold</code></td></tr>
+          <tr><td>Vehicle Type</td><td>✅</td><td><code>mini_truck</code></td></tr>
+          <tr><td>Payload Capacity (KG)</td><td>✅</td><td><code>750</code></td></tr>
+          <tr><td>Initial Odometer (KM)</td><td>✅</td><td><code>42500</code></td></tr>
+          <tr><td>Acquisition Cost (INR)</td><td>✅</td><td><code>650000</code></td></tr>
+          <tr><td>Operating Region</td><td>❌</td><td><code>Chennai</code></td></tr>
+        </tbody>
+      </table></div>
+    </div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Save Asset</strong>. The vehicle card appears immediately with status <span class="b bg">Available</span>.</div></div>
+  </div>
+  <h3>Vehicle Types</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Type</th><th>Typical Capacity</th></tr></thead>
+    <tbody>
+      <tr><td>Bike</td><td>Up to ~150 kg</td></tr>
+      <tr><td>Van</td><td>500 – 2,000 kg</td></tr>
+      <tr><td>Mini Truck</td><td>600 – 1,500 kg</td></tr>
+      <tr><td>Truck</td><td>4,000 – 16,000 kg</td></tr>
+      <tr><td>Container Truck</td><td>20,000+ kg</td></tr>
+    </tbody>
+  </table></div>
+  <h3>8.3 Vehicle Status Lifecycle</h3>
+  <div class="lc">
+    <span class="b bg">Available</span><span class="la">→ Dispatch →</span>
+    <span class="b bb">On Trip</span><span class="la">→ Complete →</span>
+    <span class="b bg">Available</span><span class="la">→ Maintenance →</span>
+    <span class="b ba">In Shop</span><span class="la">→ Close File →</span>
+    <span class="b bg">Available</span>
+  </div>
+  <div class="callout warn"><div class="ci">⚠️</div><div><b>Before Deleting a Vehicle</b>Vehicles with active trips or open maintenance files cannot be safely deleted. Complete or cancel those records first.</div></div>
+</section>
+
+<!-- 9. DRIVERS -->
+<section class="section" id="drivers">
+  <div class="sh"><div class="si">👨‍✈️</div><h2>9. Driver Registry</h2></div>
+  <p>Route: <code>/drivers</code> · Access: <strong>Fleet Manager, Safety Officer</strong></p>
+  <h3>9.1 Viewing Drivers</h3>
+  <p>Driver cards show: Name, License Category, Status Badge, License Number, License Expiry (color-coded warnings), Phone, and Safety Score (0–10 star rating).</p>
+  <h3>9.2 Adding a New Driver</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Add Driver</strong> (top-right).</div></div>
+    <div class="step"><div class="sn"></div><div class="sb"><strong>Fill in the form:</strong>
+      <div class="tw" style="margin-top:.5rem"><table>
+        <thead><tr><th>Field</th><th>Required</th><th>Example</th></tr></thead>
+        <tbody>
+          <tr><td>Driver Name</td><td>✅</td><td><code>Ravi Kumar</code></td></tr>
+          <tr><td>License Number</td><td>✅</td><td><code>TN-0120230012345</code></td></tr>
+          <tr><td>License Category</td><td>✅</td><td><code>HMV</code> (Heavy Motor Vehicle)</td></tr>
+          <tr><td>License Expiration</td><td>✅</td><td><code>2027-03-15</code></td></tr>
+          <tr><td>Contact Number</td><td>✅</td><td><code>+91-9001234567</code></td></tr>
+          <tr><td>Safety Rating (0–10)</td><td>✅</td><td><code>8.5</code></td></tr>
+        </tbody>
+      </table></div>
+    </div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Register Driver</strong>.</div></div>
+  </div>
+  <h3>9.3 License Expiry Monitoring</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Badge</th><th>Condition</th><th>Required Action</th></tr></thead>
+    <tbody>
+      <tr><td><span class="b br">Expired</span></td><td>License date is in the past</td><td>Driver must NOT be dispatched. Renew immediately.</td></tr>
+      <tr><td><span class="b ba">Expires in X days</span></td><td>Expiry within 30 days</td><td>Schedule renewal urgently.</td></tr>
+      <tr><td><em>(no badge)</em></td><td>Valid and not near expiry</td><td>No action needed.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout warn"><div class="ci">⚠️</div><div><b>Automatic Enforcement</b>Drivers with expired licenses are automatically excluded from dispatch dropdowns — enforced both on the frontend and server-side API.</div></div>
+</section>
+
+<!-- 10. TRIPS -->
+<section class="section" id="trips">
+  <div class="sh"><div class="si">🗺</div><h2>10. Dispatch &amp; Trips — The Trip Lifecycle</h2></div>
+  <p>Route: <code>/trips</code> · Access: <strong>Fleet Manager</strong> (full), <strong>Driver</strong> (tracking actions)</p>
+  <h3>10.1 Trip State Machine</h3>
+  <div class="lc">
+    <span class="b ba">Draft</span><span class="la">→ Dispatch →</span>
+    <span class="b bb">Dispatched</span><span class="la">→ Complete →</span>
+    <span class="b bg">Completed</span>
+  </div>
+  <div class="lc" style="margin-top:.4rem">
+    <span class="b ba">Draft</span><span class="la">or</span>
+    <span class="b bb">Dispatched</span><span class="la">→ Cancel →</span>
+    <span class="b br">Cancelled</span>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>Transition</th><th>Automatic Side Effects</th></tr></thead>
+    <tbody>
+      <tr><td>Draft → Dispatched</td><td>Vehicle &amp; Driver → <span class="b bb">On Trip</span> · Sets <code>dispatched_at</code> timestamp</td></tr>
+      <tr><td>Dispatched → Completed</td><td>Vehicle &amp; Driver → <span class="b bg">Available</span> · Updates odometer · Creates fuel log</td></tr>
+      <tr><td>Any → Cancelled</td><td>Vehicle &amp; Driver → <span class="b bg">Available</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>10.2 Creating a Dispatch (Draft)</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Create Dispatch</strong> (top-right of Trips page).</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Fill in: Source Depot, Destination, Driver (only <span class="b bg">Available</span> shown), Vehicle (only <span class="b bg">Available</span> shown), Planned Distance (KM), Cargo Weight (KG).</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">The <strong>Payload Gauge</strong> bar shows capacity usage visually. The button is <em>disabled</em> if cargo weight exceeds vehicle capacity.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Schedule Draft</strong>. The trip appears with a <span class="b ba">Draft</span> status badge.</div></div>
+  </div>
+
+  <h3>10.3 Live GPS Streaming (Go Live)</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">On a <span class="b bb">Dispatched</span> trip, click <strong>Go Live</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Allow location permission in the browser prompt.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">GPS coordinates are reverse-geocoded and streamed via WebSocket to all shipper tracking viewers in real time. The button turns into a pulsing red <strong>Stop Live</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Stop Live</strong> to end the GPS session.</div></div>
+  </div>
+
+  <h3>10.4 Manual Location Checkpoint (Pin Location)</h3>
+  <p>Use when continuous GPS is not practical (poor connectivity, driver breaks).</p>
+  <div class="tw"><table>
+    <thead><tr><th>Field</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Location Name</td><td>Descriptive name of the current location (e.g., <em>Hosur Toll Plaza</em>)</td></tr>
+      <tr><td>Latitude / Longitude</td><td>Auto-filled from device GPS, or enter manually</td></tr>
+      <tr><td>Status</td><td><code>in_transit</code> · <code>loading</code> · <code>unloading</code> · <code>arrived</code> · <code>delayed</code></td></tr>
+      <tr><td>Notes</td><td>Optional context (e.g., "Traffic jam on NH44, delayed 45 min")</td></tr>
+    </tbody>
+  </table></div>
+  <p>Checkpoints are <strong>saved to the database</strong> and broadcast via WebSocket to the shipper tracker instantly.</p>
+
+  <h3>10.5 Sharing Spare Capacity</h3>
+  <p>On a <span class="b bb">Dispatched</span> trip with unused cargo space, click <strong>Share Capacity</strong>. Enter route source, destination, optional intermediate stops, departure time, ETA, and price per KG. Click <strong>Publish Route</strong> to list it in the Shared Cargo Marketplace.</p>
+
+  <h3>10.6 Generating a Tracking Link for Clients</h3>
+  <p>Click <strong>Open Tracker</strong> on a dispatched trip — the public URL is copied to your clipboard automatically and opens in a new tab. Share it with your client via WhatsApp, email, or SMS. <strong>No login required for the client.</strong></p>
+
+  <h3>10.7 Completing a Trip</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">On a <span class="b bb">Dispatched</span> trip, click <strong>Complete</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Enter the <strong>Final Odometer Reading (KM)</strong> (auto-suggested) and <strong>Fuel Consumed (Liters)</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Complete &amp; Release</strong>. Vehicle and driver are automatically released to <span class="b bg">Available</span>, odometer is updated, and a fuel log is created.</div></div>
+  </div>
+</section>
+
+<!-- 11. MAINTENANCE -->
+<section class="section" id="maint">
+  <div class="sh"><div class="si">🔧</div><h2>11. Maintenance Center</h2></div>
+  <p>Route: <code>/maintenance</code> · Access: <strong>Fleet Manager only</strong></p>
+  <p>Opening a maintenance file automatically sets the vehicle to <span class="b ba">In Shop</span> and removes it from all dispatch dropdowns.</p>
+  <h3>11.1 Scheduling a Maintenance File</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Schedule Maintenance</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Select vehicle, choose type (<strong>Preventive</strong> = routine / <strong>Corrective</strong> = repair), set schedule date, optional estimated cost, and description of work.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Schedule Service</strong>. Vehicle status immediately changes to <span class="b ba">In Shop</span>.</div></div>
+  </div>
+  <h3>11.2 Closing a Maintenance File</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Find the open maintenance log and click <strong>Close File</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Enter the <strong>final actual cost (INR)</strong> when prompted and click OK.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">The log is marked <span class="b bg">closed</span> and the vehicle is immediately restored to <span class="b bg">Available</span>.</div></div>
+  </div>
+</section>
+
+<!-- 12. FUEL -->
+<section class="section" id="fuel">
+  <div class="sh"><div class="si">⛽</div><h2>12. Fleet Transactions — Fuel &amp; Expenses</h2></div>
+  <p>Route: <code>/fuel-logs</code> · Access: <strong>Fleet Manager, Driver, Financial Analyst</strong></p>
+  <p>The page has two tabs: <strong>Fuel Register</strong> and <strong>Expense Register</strong>.</p>
+  <h3>12.1 Fuel Register</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Field</th><th>Required</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Select Vehicle</td><td>✅</td><td>Any vehicle in the fleet</td></tr>
+      <tr><td>Link Trip (Optional)</td><td>❌</td><td>Associate fill-up with a specific trip</td></tr>
+      <tr><td>Liters Filled</td><td>✅</td><td><code>42.50</code></td></tr>
+      <tr><td>Receipt Cost (Rs.)</td><td>✅</td><td><code>3867.50</code></td></tr>
+      <tr><td>Transaction Date</td><td>✅</td><td>Defaults to today</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout tip"><div class="ci">💡</div><div><b>Auto-Created Fuel Logs</b>When you complete a trip, a fuel log is automatically created using the fuel consumed value you entered. No need to re-log it manually.</div></div>
+  <h3>12.2 Expense Register</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Field</th><th>Required</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Select Vehicle</td><td>✅</td><td>Vehicle that incurred the expense</td></tr>
+      <tr><td>Expense Type</td><td>✅</td><td><code>Tolls</code> / <code>Maintenance</code> / <code>Other</code></td></tr>
+      <tr><td>Amount (Rs.)</td><td>✅</td><td><code>2400</code></td></tr>
+      <tr><td>Date</td><td>✅</td><td>Defaults to today</td></tr>
+      <tr><td>Description / Memo</td><td>❌</td><td><code>Kolkata–Patna NH19 tolls</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 13. REPORTS -->
+<section class="section" id="reports">
+  <div class="sh"><div class="si">📈</div><h2>13. Fleet Analytics &amp; Reports</h2></div>
+  <p>Route: <code>/reports</code> · Access: <strong>Fleet Manager, Financial Analyst</strong></p>
+  <h3>Charts</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Chart</th><th>Type</th><th>What It Shows</th></tr></thead>
+    <tbody>
+      <tr><td>Vehicle Allocation Share</td><td>Pie / Donut</td><td>Fleet split: Available / On Trip / In Shop / Retired</td></tr>
+      <tr><td>Fuel Economy Comparison</td><td>Bar chart</td><td>KM per Litre per vehicle — higher = more efficient</td></tr>
+      <tr><td>Operating Cost Breakdown</td><td>Stacked bar</td><td>Fuel cost (blue) + Maintenance cost (amber) per vehicle</td></tr>
+    </tbody>
+  </table></div>
+  <h3>ROI Ledger Table</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Column</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>Vehicle</td><td>Registration number + model name</td></tr>
+      <tr><td>Acquisition Cost</td><td>Original purchase price (Rs.)</td></tr>
+      <tr><td>Total Operational Cost</td><td>Total fuel cost + maintenance cost</td></tr>
+      <tr><td>Asset Value Ratio</td><td><code>(Operational Cost / Acquisition Cost) × 100%</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>Ratio badge: <span class="b bg">Below 50%</span> = healthy · <span class="b br">50% or above</span> = vehicle needs review.</p>
+  <p>Click <strong>Export CSV Report</strong> to download the full ledger as a spreadsheet for Excel or Google Sheets.</p>
+</section>
+
+<!-- 14. SHARED CARGO -->
+<section class="section" id="shared">
+  <div class="sh"><div class="si">🤝</div><h2>14. Shared Cargo Marketplace</h2></div>
+  <p>Route: <code>/shared-search</code> · Access: <strong>All authenticated users</strong></p>
+  <p>Search for vehicles with published spare capacity and book co-load space to reduce freight costs.</p>
+  <h3>14.1 Searching</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Enter <strong>Pickup Location</strong>, <strong>Destination</strong>, and <strong>Cargo Weight (KG)</strong>.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Search</strong>. Result cards show vehicle info, route, times, available capacity, price per KG, and a pre-calculated quote for your weight.</div></div>
+  </div>
+  <h3>14.2 Booking</h3>
+  <div class="steps">
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Book Space</strong> on a result card.</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Enter the <strong>Planned Distance (KM)</strong> for your portion. Review the price quote (<code>weight × price_per_kg</code>).</div></div>
+    <div class="step"><div class="sn"></div><div class="sb">Click <strong>Book Slot</strong>. A new trip is created and linked to the shared route.</div></div>
+  </div>
+</section>
+
+<!-- 15. TRACKER -->
+<section class="section" id="tracker">
+  <div class="sh"><div class="si">📍</div><h2>15. Public Shipment Tracker</h2></div>
+  <p>Route: <code>/track</code> or <code>/track/:tripId</code> · Access: <strong>Anyone — no login required</strong></p>
+  <p>This is the <strong>customer-facing tracking portal</strong>. Share the tracking URL with your clients — they never need a TransitOps account.</p>
+  <div class="callout tip"><div class="ci">💡</div><div><b>Easiest Way to Share</b>On any dispatched trip, click <strong>Open Tracker</strong>. The URL is automatically copied to your clipboard and opens in a new tab. Paste it to your client via WhatsApp or email.</div></div>
+  <h3>What the Client Sees</h3>
+  <ul>
+    <li><strong>Trip Summary Card</strong> — Route, Driver, Vehicle plate, Cargo weight, Status, Timestamps</li>
+    <li><strong>Interactive Map</strong> — Live truck icon (🚛), blue route polyline through all checkpoints, auto-zooms to current position</li>
+    <li><strong>Location Timeline</strong> — All checkpoints chronologically with location name, status, coordinates, notes, and timestamp</li>
+    <li><strong>Live Badge</strong> — Pulsing red <span class="b br">● Live</span> when driver is streaming. Truck icon moves on the map in real time.</li>
+  </ul>
+</section>
+
+<!-- 16. BUSINESS RULES -->
+<section class="section" id="rules">
+  <div class="sh"><div class="si">📋</div><h2>16. Business Rules &amp; Automated Gating</h2></div>
+  <p>TransitOps enforces all the following rules <strong>automatically</strong> — both via filtered dropdowns on the frontend and validated on the server-side API.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Rule</th><th>What It Prevents</th></tr></thead>
+    <tbody>
+      <tr><td>Vehicle Dispatch Gate</td><td>Vehicles with status <span class="b ba">In Shop</span> or <span class="b br">Retired</span> cannot be selected for a new trip</td></tr>
+      <tr><td>Driver Compliance Gate</td><td>Drivers with expired licenses or <span class="b br">Suspended</span> status cannot be assigned to trips</td></tr>
+      <tr><td>Double Assignment</td><td>Drivers or vehicles already <span class="b bb">On Trip</span> cannot be assigned to another trip simultaneously</td></tr>
+      <tr><td>Payload Capacity</td><td>Cargo weight must not exceed the vehicle's maximum load capacity (KG)</td></tr>
+      <tr><td>Trip → Dispatched</td><td>Sets vehicle &amp; driver to <span class="b bb">On Trip</span> automatically</td></tr>
+      <tr><td>Trip → Completed</td><td>Releases both to <span class="b bg">Available</span>, updates odometer, creates fuel log</td></tr>
+      <tr><td>Trip → Cancelled</td><td>Releases vehicle &amp; driver back to <span class="b bg">Available</span></td></tr>
+      <tr><td>Maintenance → Open</td><td>Creating an open log sets vehicle to <span class="b ba">In Shop</span></td></tr>
+      <tr><td>Maintenance → Closed</td><td>Closing a file restores vehicle to <span class="b bg">Available</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 17. API -->
+<section class="section" id="api">
+  <div class="sh"><div class="si">🔌</div><h2>17. API Reference</h2></div>
+  <p>All endpoints are prefixed with <code>/api/</code>. Most require a JWT Bearer token.</p>
+  <pre><code>Authorization: Bearer &lt;your_jwt_token&gt;</code></pre>
+  <div class="tw"><table>
+    <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Auth</th></tr></thead>
+    <tbody>
+      <tr><td><code>POST</code></td><td><code>/api/auth/register</code></td><td>Register new account</td><td>❌ Public</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/auth/login</code></td><td>Login, receive JWT</td><td>❌ Public</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/vehicles</code></td><td>List all vehicles</td><td>✅</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/vehicles</code></td><td>Create vehicle</td><td>Fleet Mgr</td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/vehicles/:id</code></td><td>Update vehicle</td><td>Fleet Mgr</td></tr>
+      <tr><td><code>DELETE</code></td><td><code>/api/vehicles/:id</code></td><td>Delete vehicle</td><td>Fleet Mgr</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/vehicles/search</code></td><td>Search shared capacity</td><td>✅</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/vehicles/shared-booking</code></td><td>Book shared space</td><td>✅</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/vehicles/:id/publish-route</code></td><td>Publish spare capacity</td><td>✅</td></tr>
+      <tr><td><code>GET / POST</code></td><td><code>/api/drivers</code></td><td>Driver CRUD</td><td>✅</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/trips</code></td><td>List trips</td><td>✅</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/trips</code></td><td>Create trip (Draft)</td><td>Fleet Mgr</td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/trips/:id/dispatch</code></td><td>Dispatch trip</td><td>Fleet Mgr</td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/trips/:id/complete</code></td><td>Complete trip</td><td>✅</td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/trips/:id/cancel</code></td><td>Cancel trip</td><td>✅</td></tr>
+      <tr><td><code>GET / POST</code></td><td><code>/api/maintenance</code></td><td>Maintenance CRUD</td><td>Fleet Mgr</td></tr>
+      <tr><td><code>PUT</code></td><td><code>/api/maintenance/:id/close</code></td><td>Close maintenance file</td><td>Fleet Mgr</td></tr>
+      <tr><td><code>GET / POST</code></td><td><code>/api/fuel-logs</code></td><td>Fuel log entries</td><td>✅</td></tr>
+      <tr><td><code>GET / POST</code></td><td><code>/api/expenses</code></td><td>Expense entries</td><td>✅</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/reports</code></td><td>Fleet analytics data</td><td>Fleet Mgr / Fin.</td></tr>
+      <tr><td><code>GET</code></td><td><code>/api/tracking/:tripId</code></td><td>Trip checkpoints</td><td>❌ Public</td></tr>
+      <tr><td><code>POST</code></td><td><code>/api/tracking</code></td><td>Save GPS checkpoint</td><td>✅</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 18. WORKFLOWS -->
+<section class="section" id="workflows">
+  <div class="sh"><div class="si">⚡</div><h2>18. Role-by-Role Daily Workflows</h2></div>
+  <div class="rgrid">
+    <div class="rc fm"><h4>🚛 Fleet Manager</h4><ol><li>Check Dashboard KPIs for overnight changes</li><li>Close completed maintenance files</li><li>Dispatch ready Draft trips</li><li>Create new dispatch orders as needed</li><li>Monitor live trips via Open Tracker</li><li>Log fuel receipts &amp; expenses</li><li>Review weekly ROI &amp; export CSV</li></ol></div>
+    <div class="rc dr"><h4>👨‍✈️ Driver</h4><ol><li>Check Dashboard for trip summary</li><li>Go to My Trips → find Dispatched trip</li><li>Click Go Live → allow location permission</li><li>At stops → Pin Location checkpoint</li><li>On arrival → click Complete</li><li>Enter odometer + fuel consumed</li><li>Log any separate fuel fill-ups</li></ol></div>
+    <div class="rc sf"><h4>🛡 Safety Officer</h4><ol><li>Check Dashboard active driver count</li><li>Open Drivers → scan for expiry badges</li><li>Flag drivers with safety score &lt; 6.0</li><li>Contact drivers for license renewal</li><li>Report compliance issues to management</li></ol></div>
+    <div class="rc fn"><h4>💹 Financial Analyst</h4><ol><li>Check fleet utilization % (target ≥70%)</li><li>Review ROI ledger — flag red-badge vehicles</li><li>Check Fuel Economy chart for outliers</li><li>Audit Fuel &amp; Expenses ledger entries</li><li>Export CSV for weekly/monthly accounts</li></ol></div>
+  </div>
+</section>
+
+<!-- 19. GLOSSARY -->
+<section class="section" id="glossary">
+  <div class="sh"><div class="si">📖</div><h2>19. Status Glossary</h2></div>
+  <h3>Vehicle Statuses</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Status</th><th>Meaning</th><th>Dispatchable?</th></tr></thead>
+    <tbody>
+      <tr><td><span class="b bg">Available</span></td><td>In depot, ready for next assignment</td><td>✅ Yes</td></tr>
+      <tr><td><span class="b bb">On Trip</span></td><td>Currently on an active dispatched trip</td><td>❌ No</td></tr>
+      <tr><td><span class="b ba">In Shop</span></td><td>Under maintenance, work order is open</td><td>❌ No</td></tr>
+      <tr><td><span class="b br">Retired</span></td><td>Decommissioned; kept for records only</td><td>❌ No</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Driver Statuses</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Status</th><th>Meaning</th><th>Dispatchable?</th></tr></thead>
+    <tbody>
+      <tr><td><span class="b bg">Available</span></td><td>Ready and can be assigned to a new trip</td><td>✅ Yes</td></tr>
+      <tr><td><span class="b bb">On Trip</span></td><td>Currently on an active dispatched trip</td><td>❌ No</td></tr>
+      <tr><td><span class="b bk">Off Duty</span></td><td>On break, leave, or off shift</td><td>❌ No</td></tr>
+      <tr><td><span class="b br">Suspended</span></td><td>Not allowed to take trips</td><td>❌ No</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Trip Statuses</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><span class="b ba">Draft</span></td><td>Trip planned but not yet dispatched</td></tr>
+      <tr><td><span class="b bb">Dispatched</span></td><td>Trip active — vehicle &amp; driver are on the road</td></tr>
+      <tr><td><span class="b bg">Completed</span></td><td>Delivery done; odometer &amp; fuel logged; resources released</td></tr>
+      <tr><td><span class="b br">Cancelled</span></td><td>Trip cancelled; vehicle &amp; driver were released</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Maintenance Statuses</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Status</th><th>Meaning</th><th>Vehicle Status</th></tr></thead>
+    <tbody>
+      <tr><td><span class="b ba">open</span></td><td>Service work order in progress</td><td><span class="b ba">In Shop</span></td></tr>
+      <tr><td><span class="b bg">closed</span></td><td>Service complete</td><td><span class="b bg">Available</span></td></tr>
+    </tbody>
+  </table></div>
+  <h3>Tracking Checkpoint Statuses</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>in_transit</code></td><td>Vehicle is moving toward destination</td></tr>
+      <tr><td><code>loading</code></td><td>Cargo being loaded onto the vehicle</td></tr>
+      <tr><td><code>unloading</code></td><td>Cargo being unloaded at destination</td></tr>
+      <tr><td><code>arrived</code></td><td>Vehicle has reached the destination</td></tr>
+      <tr><td><code>delayed</code></td><td>Vehicle is experiencing a delay</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 20. TROUBLESHOOTING -->
+<section class="section" id="trouble">
+  <div class="sh"><div class="si">🛠</div><h2>20. Troubleshooting &amp; FAQ</h2></div>
+  <h3>Installation Issues</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td><code>ECONNREFUSED</code> on startup</td><td>PostgreSQL not running</td><td>Start the PostgreSQL service on your system</td></tr>
+      <tr><td>Database does not exist</td><td>Schema not created</td><td>Run <code>CREATE DATABASE transitops;</code> then <code>schema.sql</code></td></tr>
+      <tr><td>Frontend shows blank page</td><td>Backend not running</td><td>Start backend first (<code>npm start</code> in <code>/backend</code>)</td></tr>
+      <tr><td>CORS error in browser</td><td><code>FRONTEND_URL</code> mismatch in <code>.env</code></td><td>Ensure it matches your React dev server URL</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Dispatch &amp; Trip Issues</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td>Vehicle missing from dropdown</td><td>Status is On Trip or In Shop</td><td>Complete the trip or close the maintenance file</td></tr>
+      <tr><td>Driver missing from dropdown</td><td>On Trip, Off Duty, or Suspended</td><td>Check Driver Registry for current status</td></tr>
+      <tr><td>"Schedule Draft" button disabled</td><td>Cargo exceeds vehicle capacity</td><td>Reduce cargo weight or select a higher-capacity vehicle</td></tr>
+    </tbody>
+  </table></div>
+  <h3>GPS &amp; Tracking Issues</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Problem</th><th>Cause</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td>"GPS unavailable"</td><td>Browser denied location or no GPS</td><td>Reset location permissions, or enter coordinates manually</td></tr>
+      <tr><td>Live streaming stops</td><td>Browser tab backgrounded or device slept</td><td>Re-click "Go Live" to resume streaming</td></tr>
+      <tr><td>Tracking link: "Trip not found"</td><td>Wrong Trip ID</td><td>Click the hash on the trip card to copy the exact Trip ID</td></tr>
+      <tr><td>Map shows no truck icon</td><td>No checkpoints saved, not live</td><td>Use "Pin Location" or "Go Live" to set a position</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Reports Issues</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Problem</th><th>Solution</th></tr></thead>
+    <tbody>
+      <tr><td>Charts are empty</td><td>Add at least one fuel log and close one maintenance file first</td></tr>
+      <tr><td>Vehicle missing from Fuel Economy chart</td><td>Complete at least one trip for that vehicle with fuel data</td></tr>
+      <tr><td>ROI shows 0 operational cost</td><td>Log fuel and/or complete a maintenance file for that vehicle</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout tip"><div class="ci">💡</div><div><b>General Tips</b>
+    <ul style="margin-top:.4rem;padding-left:1.1rem">
+      <li><strong>Toast notifications</strong> appear top-right for every action — read them to confirm success or see error details.</li>
+      <li><strong>Dropdowns are pre-filtered</strong> — only eligible options are shown. If something is missing, check its current status.</li>
+      <li><strong>Dashboard updates automatically</strong> via WebSocket — no need to refresh the page.</li>
+      <li><strong>The <code>/track</code> route is fully public</strong> — share it freely with clients. No account needed.</li>
+    </ul>
+  </div></div>
+</section>
+
+</main>
+
+<footer>
+  <div><strong>TransitOps v1.0</strong> — Smart Fleet Operations Management Platform<br>Stack: React.js · Node.js/Express · PostgreSQL · Socket.io</div>
+  <div style="text-align:right">For technical support, contact your system administrator.<br><em>End of Documentation</em></div>
+</footer>
+
+<a class="stbtn" id="stbtn" href="#" title="Back to top">↑</a>
+
+<script>
+const sections=document.querySelectorAll('section[id]');
+const links=document.querySelectorAll('.nlink');
+const btn=document.getElementById('stbtn');
+const obs=new IntersectionObserver(e=>{e.forEach(x=>{if(x.isIntersecting){links.forEach(l=>l.classList.remove('active'));const a=document.querySelector(`.nlink[href="#${x.target.id}"]`);if(a)a.classList.add('active')}})},{rootMargin:'-20% 0px -70% 0px'});
+sections.forEach(s=>obs.observe(s));
+window.addEventListener('scroll',()=>btn.classList.toggle('vis',scrollY>300));
+</script>
+</body>
+</html>

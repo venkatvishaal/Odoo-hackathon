@@ -1,28 +1,32 @@
 import React from 'react';
+import { BsExclamationTriangleFill } from 'react-icons/bs';
 
 export default function PayloadGauge({ value, max }) {
-  const percentage = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
-  const isOverloaded = percentage > 100 || value > max;
+  const percentage = max > 0 ? Math.round((value / max) * 100) : 0;
+  const isOverloaded = value > max;
 
   return (
     <div className="mt-2">
-      <div className="flex justify-between text-xs font-bold text-gray-400 uppercase mb-1">
-        <span>Load: {value} / {max} kg</span>
-        <span className={isOverloaded ? 'text-red-500 font-extrabold' : 'text-blue-500 font-bold'}>
-          {percentage}%
-        </span>
+      <div className="flex justify-between font-mono text-[11px] uppercase tracking-[0.06em] text-muted">
+        <span>Load {value} / {max} kg</span>
+        <span className={isOverloaded ? 'font-semibold text-danger' : 'text-ink'}>{percentage}%</span>
       </div>
-      <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-        <div 
-          className={`h-full transition-all duration-300 ${
-            isOverloaded ? 'bg-red-500 animate-pulse' : 'bg-blue-500'
-          }`}
+      <div
+        className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-line"
+        role="meter"
+        aria-label="Payload"
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={value}
+      >
+        <div
+          className={`h-full transition-[width] duration-300 ${isOverloaded ? 'bg-danger' : 'bg-ink'}`}
           style={{ width: `${Math.min(100, percentage)}%` }}
         />
       </div>
       {isOverloaded && (
-        <p className="text-[10px] text-red-500 font-bold uppercase mt-1 animate-pulse">
-          ⚠️ Overloaded! Exceeds vehicle load capacity
+        <p className="mt-1.5 flex items-center gap-1.5 text-xs font-semibold text-danger">
+          <BsExclamationTriangleFill aria-hidden="true" /> Exceeds vehicle load capacity
         </p>
       )}
     </div>

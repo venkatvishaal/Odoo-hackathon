@@ -1,8 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
@@ -15,21 +17,15 @@ import ReportsPage from './pages/ReportsPage';
 import SharedShipmentSearch from './pages/SharedShipmentSearch';
 import ShipperTracking from './pages/ShipperTracking';
 
-import Navbar from './components/layout/Navbar';
+import AppShell from './components/layout/AppShell';
 import PrivateRoute from './components/layout/PrivateRoute';
 
 export default function App() {
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        {/* Toast Container */}
-        <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />
-
-        {/* Global Navbar */}
-        <Navbar />
-
-        {/* Page Content */}
-        <div className="flex-1">
+      <ToastContainer position="bottom-right" autoClose={3000} />
+      <AppShell>
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -113,11 +109,10 @@ export default function App() {
             <Route path="/track/:tripId" element={<ShipperTracking />} />
 
             {/* Fallbacks */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
-        </div>
-      </div>
+      </AppShell>
     </Router>
   );
 }
