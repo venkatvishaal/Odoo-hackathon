@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion, useMotionValue, useReducedMotion, useSpring } from 'motion/react';
 
-// Pointer-tracked 3D tilt. Off for touch devices and reduced motion.
+// Pointer-tracked 3D tilt that also feeds --mx/--my to `.spotlight` children. Off for touch and reduced motion.
 export default function Tilt({ max = 6, className = '', children }) {
   const reduceMotion = useReducedMotion();
   const canHover = useMemo(() => typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches, []);
@@ -12,10 +12,19 @@ export default function Tilt({ max = 6, className = '', children }) {
 
   const onMove = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
-    ry.set(((e.clientX - r.left) / r.width - 0.5) * 2 * max);
-    rx.set(-((e.clientY - r.top) / r.height - 0.5) * 2 * max);
+    const px = e.clientX - r.left;
+    const py = e.clientY - r.top;
+    e.currentTarget.style.setProperty('--mx', `${px}px`);
+    e.currentTarget.style.setProperty('--my', `${py}px`);
+    ry.set((px / r.width - 0.5) * 2 * max);
+    rx.set(-(py / r.height - 0.5) * 2 * max);
   };
-  const reset = () => { rx.set(0); ry.set(0); };
+  const reset = (e) => {
+    e.currentTarget.style.removeProperty('--mx');
+    e.currentTarget.style.removeProperty('--my');
+    rx.set(0);
+    ry.set(0);
+  };
 
   return (
     <motion.div

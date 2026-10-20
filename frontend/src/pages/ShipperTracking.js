@@ -1,10 +1,16 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { Suspense, lazy, useEffect, useState, useRef, useCallback } from 'react';
+import { useReducedMotion } from 'motion/react';
 import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { toast } from 'react-toastify';
 import api from '../services/api';
 import 'leaflet/dist/leaflet.css';
-import { BsSearch, BsTruck, BsShieldCheck, BsBroadcast } from 'react-icons/bs';
+import { BsSearch, BsTruck, BsShieldCheck, BsBroadcast, BsArrowRight } from 'react-icons/bs';
+import { RouteLine } from '../components/landing/HeroBoard';
+import { hasWebGL } from '../components/landing/webgl';
+
+// three.js loads in its own chunk; the SVG route covers loading and no-WebGL browsers.
+const TrackScene = lazy(() => import('../components/track/TrackScene'));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fix Leaflet's broken default icon paths when bundled with webpack/CRA
@@ -33,6 +39,8 @@ export default function ShipperTracking() {
   const [checkpoints, setCheckpoints]   = useState([]);
   const [loading, setLoading]           = useState(false);
   const [searched, setSearched]         = useState(false);
+  const [webgl]                         = useState(hasWebGL);
+  const reduceMotion                    = useReducedMotion();
 
   // Socket ref
   const socketRef = useRef(null);
@@ -270,43 +278,61 @@ export default function ShipperTracking() {
     Cancelled: 'bg-red-100 text-red-700',
   };
 
+  const sceneStatus = loading ? 'busy' : trip ? 'found' : searched ? 'missing' : tripIdInput.trim() ? 'typing' : 'idle';
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-12">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-paper">
+      {/* ── HEADER + SEARCH: 3D map table band ── */}
+      <section className={`relative isolate overflow-hidden rounded-b-[24px] bg-ink text-paper transition-[min-height] duration-700 ${trip ? 'min-h-[360px]' : 'min-h-[min(640px,72svh)]'}`}>
+        <div className="absolute inset-0 -z-10">
+          {webgl ? (
+            <Suspense fallback={<RouteLine className="absolute inset-0 h-full w-full" />}>
+              <TrackScene status={sceneStatus} reduceMotion={!!reduceMotion} className="absolute inset-0" />
+            </Suspense>
+          ) : <RouteLine className="absolute inset-0 h-full w-full" />}
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_55%_70%_at_0%_0%,rgb(var(--ink))_35%,rgb(var(--ink)/0)_80%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-48 bg-gradient-to-t from-ink to-transparent" />
 
-        {/* ── HEADER ── */}
-        <header className="text-center mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-2">
-            Shipper <span className="text-blue-600">Portal</span>
-          </h1>
-          <p className="text-gray-500 text-lg">
-            Track your cargo in real-time with live GPS updates.
-          </p>
-        </header>
+        <div className={`mx-auto flex max-w-wide flex-col px-5 pb-8 pt-10 sm:px-8 lg:px-12 ${trip ? 'min-h-[360px]' : 'min-h-[min(640px,72svh)]'}`}>
+          <header className="max-w-[30rem]">
+            <p className="hud flex items-center gap-2.5 text-paper/55">
+              <span aria-hidden="true" className="h-1.5 w-1.5 animate-pulse rounded-full bg-signal" />Shipper portal · live GPS
+            </p>
+            <h1 className="display-lg mt-5 text-paper">Where’s my cargo?</h1>
+            <p className="mt-4 text-[16px] leading-relaxed text-paper/65">Track your cargo in real time with live GPS updates. No account needed.</p>
+          </header>
 
-        {/* ── SEARCH ── */}
-        <div className="bg-white rounded-3xl shadow-xl shadow-blue-50 p-8 mb-8 border border-blue-50">
-          <form onSubmit={handleSearch} className="flex gap-4">
-            <div className="relative flex-1">
-              <BsSearch className="absolute left-4 top-4 text-gray-400 text-lg" />
-              <input
-                required
-                placeholder="Enter Trip ID / Booking ID"
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border-transparent rounded-2xl focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all font-medium text-gray-800"
-                value={tripIdInput}
-                onChange={e => setTripIdInput(e.target.value)}
-              />
+          <form onSubmit={handleSearch} className="mx-auto mt-auto w-full max-w-[720px] rounded-[14px] bg-paper p-2 text-ink shadow-[0_24px_60px_-20px_rgb(0_0_0/0.6)]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <label htmlFor="track-id" className="relative flex-1">
+                <span className="hud absolute left-12 top-2.5 text-muted">Trip ID / booking ID</span>
+                <BsSearch aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-muted" />
+                <input
+                  id="track-id"
+                  required
+                  placeholder="Enter the ID from your booking"
+                  className="h-full w-full rounded-[10px] border border-transparent bg-surface pb-2.5 pl-12 pr-4 pt-7 text-[16px] font-medium text-ink placeholder:text-muted/60 transition-colors focus:border-ink focus:outline-none"
+                  value={tripIdInput}
+                  onChange={e => setTripIdInput(e.target.value)}
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={loading}
+                className="group inline-flex items-center justify-between gap-3 rounded-full bg-ink py-1.5 pl-6 pr-1.5 text-[15px] font-semibold text-paper transition-opacity disabled:cursor-wait disabled:opacity-70 sm:rounded-[10px]"
+              >
+                {loading ? 'Searching…' : 'Track cargo'}
+                <span className="grid h-10 w-10 place-items-center rounded-full bg-signal text-ink transition-transform duration-300 group-hover:-rotate-45">
+                  <BsArrowRight aria-hidden="true" />
+                </span>
+              </button>
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-8 rounded-2xl font-bold transition-all shadow-lg shadow-blue-200"
-            >
-              {loading ? 'Searching…' : 'Track Cargo'}
-            </button>
           </form>
         </div>
+      </section>
 
+      <div className="mx-auto max-w-5xl p-6 md:p-12">
         {loading && (
           <div className="text-center py-20">
             <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />

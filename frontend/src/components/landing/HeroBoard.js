@@ -6,10 +6,10 @@ import StatusBadge from '../ui/StatusBadge';
 
 // Illustrative only: a static trip that walks through the same gates TripPlanner enforces.
 const GATES = [
-  'Vehicle not In Shop or Retired',
-  'Driver licence valid, not Suspended',
-  'Neither asset already On Trip',
-  'Cargo 3,200 kg ≤ 5,000 kg capacity',
+  'Vehicle not In Shop',
+  'Licence valid',
+  'Not already On Trip',
+  '3,200 ≤ 5,000 kg',
 ];
 
 export const ROUTE_PATH = 'M24 132 C 90 132, 96 52, 170 60 S 250 120, 316 40';
@@ -66,7 +66,8 @@ export function RouteLine({ className = '', live = true }) {
   );
 }
 
-export default function HeroBoard({ compact = false }) {
+// Instrument strip under the hero stage: waybill facts on the left, the gates it passed on the right.
+export default function HeroBoard() {
   const reduceMotion = useReducedMotion();
   const [dispatched, setDispatched] = useState(!!reduceMotion);
 
@@ -77,65 +78,46 @@ export default function HeroBoard({ compact = false }) {
   }, [reduceMotion]);
 
   return (
-    <div className="relative">
-      {/* Offset "paper stack" gives depth without shadows-on-shadows. */}
-      <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-panel border border-line bg-surface/60" />
-      <figure className="panel relative overflow-hidden shadow-[0_24px_60px_-28px_rgb(var(--ink)/0.35)]" aria-label="Example trip moving through dispatch gates">
-        <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
+    <figure className="grid overflow-hidden rounded-[10px] border border-ink/10 bg-surface sm:grid-cols-2" aria-label="Example trip moving through dispatch gates">
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
           <span className="eyebrow">Trip waybill · example</span>
           <motion.span key={dispatched ? 'd' : 'n'} initial={reduceMotion ? false : { opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}>
             <StatusBadge status={dispatched ? 'Dispatched' : 'Draft'} />
           </motion.span>
         </div>
-
-        <dl className="grid grid-cols-2 border-b border-line text-[13px] sm:grid-cols-3">
+        <dl className="grid flex-1 grid-cols-3 text-[13px]">
           {[
             ['Vehicle', 'TRK-07 · 5 t'],
             ['Driver', 'Licence HMV'],
             ['Route', 'Depot → Hub 3'],
           ].map(([k, v], i) => (
-            <div key={k} className={`px-4 py-3 ${i ? 'border-l border-line' : ''} ${i === 2 ? 'col-span-2 border-l-0 border-t sm:col-span-1 sm:border-l sm:border-t-0' : ''}`}>
+            <div key={k} className={`px-4 py-3 ${i ? 'border-l border-line' : ''}`}>
               <dt className="eyebrow text-[10px]">{k}</dt>
-              <dd className="num mt-0.5 font-medium">{v}</dd>
+              <dd className="num mt-1 font-medium leading-snug">{v}</dd>
             </div>
           ))}
         </dl>
-
-        <div className={compact ? '' : 'grid sm:grid-cols-[1fr_1.1fr]'}>
-          <div className="px-4 py-4">
-            <p className="eyebrow mb-2.5 text-[10px]">Dispatch gates</p>
-            <ul className="space-y-2">
-              {GATES.map((g, i) => (
-                <motion.li
-                  key={g}
-                  className="flex items-start gap-2.5 text-[13px]"
-                  initial={reduceMotion ? false : { opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + i * 0.3, duration: 0.35 }}
-                >
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-ok text-surface">
-                    <BsCheckLg aria-hidden="true" className="text-[11px]" />
-                  </span>
-                  {g}
-                </motion.li>
-              ))}
-            </ul>
-            <div className="mt-4">
-              <PayloadGauge value={3200} max={5000} />
-            </div>
-          </div>
-          {!compact && <div className="relative bg-ink">
-            <RouteLine className="h-full min-h-[170px] w-full" live={dispatched} />
-            <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.08em]">
-              <span className="flex items-center gap-1.5 text-paper/80">
-                <span className={`h-1.5 w-1.5 rounded-full ${dispatched ? 'bg-signal' : 'bg-paper/30'}`} />
-                {dispatched ? 'Live GPS' : 'Awaiting dispatch'}
+      </div>
+      <div className="border-t border-line px-4 py-3 sm:border-l sm:border-t-0">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+          {GATES.map((g, i) => (
+            <motion.li
+              key={g}
+              className="flex items-start gap-2 text-[12px] leading-snug"
+              initial={reduceMotion ? false : { opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 + i * 0.3, duration: 0.35 }}
+            >
+              <span className="mt-px flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm bg-ok text-surface">
+                <BsCheckLg aria-hidden="true" className="text-[10px]" />
               </span>
-              <span className="rounded-sm bg-signal px-1.5 py-0.5 font-semibold text-ink">1,800 kg spare · shared</span>
-            </div>
-          </div>}
-        </div>
-      </figure>
-    </div>
+              {g}
+            </motion.li>
+          ))}
+        </ul>
+        <PayloadGauge value={3200} max={5000} />
+      </div>
+    </figure>
   );
 }

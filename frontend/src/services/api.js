@@ -23,7 +23,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error Response:', error?.response || error);
-    if (error.response?.status === 401) {
+    // A failed sign-in is also a 401; let the login form show its error instead of reloading the page.
+    if (error.response?.status === 401 && !error.config?.url?.endsWith('/auth/login')) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

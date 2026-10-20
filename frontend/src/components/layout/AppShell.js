@@ -141,8 +141,8 @@ export default function AppShell({ children }) {
   };
 
   if (!isAuthenticated) {
-    // The landing page brings its own navigation.
-    if (location.pathname === '/') return children;
+    // Landing and auth pages bring their own navigation.
+    if (['/', '/login', '/register'].includes(location.pathname)) return children;
     return (
       <div className="flex min-h-screen flex-col">
         <PublicBar />

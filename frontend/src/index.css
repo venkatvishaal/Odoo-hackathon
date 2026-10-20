@@ -72,6 +72,17 @@
   .num { @apply font-mono tabular-nums; }
   /* Condensed freight-signage headline used on the landing page */
   .display { @apply font-bold leading-[0.98] tracking-[-0.02em]; font-stretch: 75%; text-wrap: balance; }
+  /* Landing type scale: fluid, condensed, tight. */
+  .display-xl { @apply font-extrabold; font-stretch: 75%; font-size: clamp(46px, 9.2vw, 156px); line-height: 0.86; letter-spacing: -0.04em; }
+  .display-hero { @apply font-extrabold; font-stretch: 75%; font-size: clamp(40px, 4.6vw, 76px); line-height: 0.88; letter-spacing: -0.04em; }
+  .display-lg { @apply font-bold; font-stretch: 75%; font-size: clamp(40px, 5.4vw, 92px); line-height: 0.9; letter-spacing: -0.035em; text-wrap: balance; }
+  .display-md { @apply font-bold; font-stretch: 75%; font-size: clamp(26px, 2.4vw, 38px); line-height: 0.98; letter-spacing: -0.025em; text-wrap: balance; }
+  .hud { @apply font-mono text-[10.5px] font-medium uppercase tracking-[0.12em]; }
+  .section-y { padding-block: clamp(96px, 13vw, 192px); }
+  .numeral-outline { color: transparent; -webkit-text-stroke: 1px rgb(var(--ink) / 0.35); }
+  /* Pointer spotlight; --mx/--my are set by <Tilt>. */
+  .spotlight { background-image: radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), rgb(var(--signal) / 0.12), transparent 60%); }
+  .spotlight-dark { background-image: radial-gradient(420px circle at var(--mx, -999px) var(--my, -999px), rgb(var(--signal) / 0.16), transparent 60%); }
 
   /* Data tables */
   .table { @apply w-full border-collapse text-left text-sm; }
@@ -82,6 +93,20 @@
 
   .skeleton { @apply animate-pulse rounded bg-line/60; }
 }
+
+/* Landing: printed-paper grain + rule marquee */
+.grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.035; /* no blend mode: a blended fixed layer forces full-page recompositing on scroll */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee { animation: marquee 38s linear infinite; }
+.marquee:hover { animation-play-state: paused; }
 
 /* Leaflet + toastify blend into the system */
 .leaflet-container { font-family: inherit; }
@@ -96,6 +121,7 @@
 .Toastify__progress-bar { height: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
+  .marquee { animation: none !important; }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

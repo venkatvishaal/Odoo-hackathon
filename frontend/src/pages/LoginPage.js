@@ -4,15 +4,24 @@ import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import authService from '../services/authService';
 import { loginSuccess } from '../redux/slices/authSlice';
-import { BsTruck } from 'react-icons/bs';
+import AuthLayout, { SubmitPill } from '../components/auth/AuthLayout';
+
+const READOUT = {
+  idle: 'Gate 01 · Awaiting credentials',
+  typing: 'Gate 01 · Credentials entered',
+  busy: 'Verifying · barrier lifting',
+  error: 'Access denied · check credentials',
+};
 
 export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
+    setFailed(false);
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -35,62 +44,59 @@ export default function LoginPage() {
       navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err.response?.data);
+      setFailed(true);
       toast.error(err.response?.data?.message || 'Login failed. Check credentials.');
     } finally {
       setLoading(false);
     }
   };
 
+  const status = loading ? 'busy' : failed ? 'error' : form.email || form.password ? 'typing' : 'idle';
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="bg-white shadow rounded-lg p-8 w-full max-w-md border border-gray-100">
-        <div className="flex justify-center mb-4 text-blue-600">
-          <BsTruck className="text-5xl" />
+    <AuthLayout
+      checkpoint="01"
+      title="Back on the board."
+      lead="Sign in to dispatch, track and settle trips."
+      scene={{ variant: 'gate', status }}
+      readout={{ tone: status, text: READOUT[status], meta: 'JWT session' }}
+      footer={<>New to TransitOps? <Link to="/register" className="font-semibold text-ink underline decoration-signal decoration-2 underline-offset-4 hover:decoration-ink">Create an account</Link></>}
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label htmlFor="login-email" className="label">Email address</label>
+          <input
+            id="login-email"
+            type="email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            required
+            autoComplete="email"
+            placeholder="manager@transitops.com"
+            className={`field py-3 ${failed ? 'field-error' : ''}`}
+          />
         </div>
-        <h2 className="text-2xl font-bold mb-1 text-center text-gray-800">TransitOps</h2>
-        <p className="text-gray-500 text-sm text-center mb-6">Smart Fleet Operations Management Platform</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
-            <input
-              type="email" 
-              name="email" 
-              value={form.email}
-              onChange={handleChange} 
-              required 
-              placeholder="manager@transitops.com"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-            />
-          </div>
+        <div>
+          <label htmlFor="login-password" className="label">Password</label>
+          <input
+            id="login-password"
+            type="password"
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            autoComplete="current-password"
+            placeholder="••••••••"
+            className={`field py-3 ${failed ? 'field-error' : ''}`}
+          />
+        </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-            <input
-              type="password" 
-              name="password" 
-              value={form.password}
-              onChange={handleChange} 
-              required 
-              placeholder="••••••••"
-              className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
-            />
-          </div>
-
-          <button
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold transition shadow-sm mt-6 text-sm"
-          >
-            {loading ? 'Logging in...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline font-semibold">Register</Link>
-        </p>
-      </div>
-    </div>
+        <div className="pt-3">
+          <SubmitPill loading={loading} busyLabel="Signing in…">Sign in</SubmitPill>
+        </div>
+      </form>
+    </AuthLayout>
   );
 }
