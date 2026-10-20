@@ -6,7 +6,7 @@ import vehicleService from '../services/vehicleService';
 import tripService from '../services/tripService';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { toast } from 'react-toastify';
-import { FaGasPump, FaMoneyBillWave, FaPlus, FaFilter, FaCalendarAlt, FaTruck } from 'react-icons/fa';
+import { FaGasPump, FaMoneyBillWave, FaPlus, FaFilter } from 'react-icons/fa';
 import { BsDownload, BsFileEarmarkExcel, BsFileEarmarkPdf } from 'react-icons/bs';
 import Menu from '../components/ui/Menu';
 import { canExportFinance, exportExcel, exportPdf, fileDate, num, pdfMoney } from '../utils/reportExport';

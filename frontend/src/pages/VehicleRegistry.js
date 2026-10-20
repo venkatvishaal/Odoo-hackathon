@@ -9,7 +9,7 @@ import { FaTruck, FaTrash, FaPlus, FaMapMarkerAlt, FaRoute, FaMoneyBillWave } fr
 
 export default function VehicleRegistry() {
   const dispatch = useDispatch();
-  const { list: vehicles, loading, error } = useSelector((state) => state.vehicles);
+  const { list: vehicles, loading } = useSelector((state) => state.vehicles);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
     registration_number: '',

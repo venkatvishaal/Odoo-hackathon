@@ -90,6 +90,9 @@ io.on('connection', (socket) => {
 
 // Routes
 
+// Unauthenticated liveness probe for Render health checks / uptime pingers.
+app.get('/api/health', (req, res) => res.json({ ok: true }));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/drivers', driverRoutes);

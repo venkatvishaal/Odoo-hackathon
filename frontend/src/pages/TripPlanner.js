@@ -14,7 +14,7 @@ import { FaRoute, FaPlus, FaCheck, FaBan, FaPlay, FaArrowRight, FaGasPump, FaTac
 
 export default function TripPlanner() {
   const dispatch = useDispatch();
-  const { list: trips, loading, error, validationErrors } = useSelector((state) => state.trips);
+  const { list: trips, loading } = useSelector((state) => state.trips);
   
   // Local state for dropdown options
   const [eligibleVehicles, setEligibleVehicles] = useState([]);
@@ -205,7 +205,7 @@ export default function TripPlanner() {
       loadEligibleOptions();
       dispatch(clearValidationErrors());
     }
-  }, [showAddModal]);
+  }, [showAddModal, dispatch]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
