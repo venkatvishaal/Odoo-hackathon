@@ -93,7 +93,7 @@ export default function MaintenancePage() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-800 flex items-center gap-3">
               <FaWrench className="text-blue-600 text-3xl" /> Maintenance Center

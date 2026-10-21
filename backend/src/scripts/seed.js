@@ -32,7 +32,7 @@ const seedDatabase = async () => {
     for (const u of users) {
       await User.findOrCreate({
         where: { email: u.email },
-        defaults: u,
+        defaults: { ...u, email_verified: true },
         transaction: t
       });
     }
@@ -63,10 +63,12 @@ const seedDatabase = async () => {
       { name: 'Suresh', license_number: 'KA-DL-2024-004', license_category: 'LMV', license_expiry_date: '2024-01-01', contact_number: '9876543213', safety_score: 3.0, status: 'Suspended' }
     ];
 
+    // Link driver Alex to the alex@ login so row-level security shows Alex their own trips.
+    const alexUser = await User.findOne({ where: { email: 'alex@transitops.com' }, transaction: t });
     for (const d of drivers) {
       await Driver.findOrCreate({
         where: { license_number: d.license_number },
-        defaults: d,
+        defaults: d.name === 'Alex' ? { ...d, user_id: alexUser?.id } : d,
         transaction: t
       });
     }

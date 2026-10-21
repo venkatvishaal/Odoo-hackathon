@@ -23,6 +23,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error Response:', error?.response || error);
+    // No response at all (server down, offline, CORS): give every page's
+    // `err.response?.data?.message` fallback a message people can act on.
+    if (!error.response) {
+      error.response = { data: { message: "Can't reach the TransitOps server. Check your connection and try again." } };
+      return Promise.reject(error);
+    }
     // A failed sign-in is also a 401; let the login form show its error instead of reloading the page.
     if (error.response?.status === 401 && !error.config?.url?.endsWith('/auth/login')) {
       localStorage.removeItem('token');

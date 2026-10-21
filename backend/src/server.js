@@ -1,13 +1,16 @@
+const Sentry = require('./instrument');
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 require('dotenv').config();
 
 const sequelize = require('./config/database');
 const AppError = require('./utils/AppError');
+const { enableRls } = require('./middleware/auth');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -38,6 +41,7 @@ const io = socketIo(server, {
 app.set('io', io);
 
 // Middleware
+app.set('trust proxy', 1); // Render sits in front of us; rate limits need the real client IP
 app.use(helmet());
 app.use(cors({
   origin: function (origin, callback) {
@@ -49,7 +53,16 @@ app.use(cors({
 }));
 app.use(morgan('dev'));
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+
+// General API ceiling per IP; auth routes add a much stricter one (routes/auth.js).
+app.use('/api', rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please slow down and try again in a few minutes.' }
+}));
 
 // Socket.io Connection Room Setup
 io.on('connection', (socket) => {
@@ -108,6 +121,8 @@ app.use((req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404));
 });
 
+Sentry.setupExpressErrorHandler(app);
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   err.statusCode = err.statusCode || 500;
@@ -136,6 +151,10 @@ const startServer = async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');
+
+    const [[{ ready }]] = await sequelize.query("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'transitops_app') AS ready");
+    enableRls(ready);
+    if (!ready) console.warn('Row-level security is OFF: run `npm run db:migrate-auth` to enable it.');
     
     server.listen(PORT, () => {
       console.log(`TransitOps server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);

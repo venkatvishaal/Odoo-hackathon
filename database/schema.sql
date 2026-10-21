@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL,
     phone         VARCHAR(20),
     is_active     BOOLEAN NOT NULL DEFAULT TRUE,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    token_version INT NOT NULL DEFAULT 0, -- bumped on logout/reset; invalidates older JWTs
     created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT uq_users_email UNIQUE (email)
@@ -197,3 +199,4 @@ CREATE TABLE IF NOT EXISTS tracking (
 );
 CREATE INDEX IF NOT EXISTS idx_tracking_trip_id ON tracking(trip_id);
 
+-- Row-level security (restricted role + policies) is applied by: cd backend && npm run db:migrate-auth

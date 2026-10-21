@@ -16,6 +16,12 @@ import FuelExpensePage from './pages/FuelExpensePage';
 import ReportsPage from './pages/ReportsPage';
 import SharedShipmentSearch from './pages/SharedShipmentSearch';
 import ShipperTracking from './pages/ShipperTracking';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import AccountPage from './pages/AccountPage';
+import NotFoundPage from './pages/NotFoundPage';
+import { PrivacyPage, TermsPage } from './pages/LegalPages';
 
 import AppShell from './components/layout/AppShell';
 import PrivateRoute from './components/layout/PrivateRoute';
@@ -30,6 +36,12 @@ export default function App() {
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/account" element={<PrivateRoute><AccountPage /></PrivateRoute>} />
 
             {/* Protected Routes */}
             <Route 
@@ -110,7 +122,7 @@ export default function App() {
 
             {/* Fallbacks */}
             <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
       </AppShell>
     </Router>

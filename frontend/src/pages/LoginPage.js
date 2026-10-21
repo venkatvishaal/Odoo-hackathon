@@ -17,11 +17,14 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFailed(false);
+    setUnverified(false);
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -45,9 +48,22 @@ export default function LoginPage() {
     } catch (err) {
       console.error('Login error:', err.response?.data);
       setFailed(true);
+      setUnverified(err.response?.data?.code === 'EMAIL_UNVERIFIED');
       toast.error(err.response?.data?.message || 'Login failed. Check credentials.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const resendVerification = async () => {
+    setResending(true);
+    try {
+      const res = await authService.resendVerification(form.email);
+      toast.success(res.data.message);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not resend the email.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -79,7 +95,10 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <label htmlFor="login-password" className="label">Password</label>
+          <div className="flex items-baseline justify-between">
+            <label htmlFor="login-password" className="label">Password</label>
+            <Link to="/forgot-password" className="text-[13px] font-medium text-ink/65 underline-offset-4 hover:text-ink hover:underline">Forgot password?</Link>
+          </div>
           <input
             id="login-password"
             type="password"
@@ -92,6 +111,15 @@ export default function LoginPage() {
             className={`field py-3 ${failed ? 'field-error' : ''}`}
           />
         </div>
+
+        {unverified && (
+          <div role="alert" className="rounded-panel border border-signal/40 bg-signal/10 px-4 py-3 text-[14px] text-ink">
+            Your email isn't verified yet.{' '}
+            <button type="button" onClick={resendVerification} disabled={resending} className="font-semibold underline underline-offset-4 disabled:opacity-60">
+              {resending ? 'Sending…' : 'Resend verification email'}
+            </button>
+          </div>
+        )}
 
         <div className="pt-3">
           <SubmitPill loading={loading} busyLabel="Signing in…">Sign in</SubmitPill>

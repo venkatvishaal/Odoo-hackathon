@@ -5,7 +5,7 @@ const handleValidationErrors = (req, res, next) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({
       success: false,
-      message: 'Validation failed',
+      message: errors.array()[0].msg,
       errors: errors.array().map(err => ({
         field: err.path,
         message: err.msg
@@ -15,12 +15,17 @@ const handleValidationErrors = (req, res, next) => {
   next();
 };
 
+const newPassword = () => body('password')
+  .isLength({ min: 8, max: 128 }).withMessage('Password must be 8-128 characters')
+  .matches(/[A-Za-z]/).withMessage('Password must contain a letter')
+  .matches(/[0-9]/).withMessage('Password must contain a number');
+
 const validators = {
   register: [
     body('name').trim().notEmpty().withMessage('Name is required')
       .isLength({ min: 2, max: 100 }).withMessage('Name must be 2-100 characters'),
     body('email').isEmail().withMessage('Valid email is required'),
-    body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+    newPassword(),
     body('role').notEmpty().withMessage('Role is required')
       .isIn(['fleet_manager', 'driver', 'safety_officer', 'financial_analyst'])
       .withMessage('Invalid role'),
@@ -30,6 +35,19 @@ const validators = {
   login: [
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required')
+  ],
+
+  emailOnly: [
+    body('email').isEmail().withMessage('Valid email is required')
+  ],
+
+  token: [
+    body('token').isString().notEmpty().withMessage('The link is missing its token')
+  ],
+
+  resetPassword: [
+    body('token').isString().notEmpty().withMessage('The link is missing its token'),
+    newPassword()
   ],
 
   createVehicle: [

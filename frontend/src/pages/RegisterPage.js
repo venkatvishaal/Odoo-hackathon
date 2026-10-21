@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import authService from '../services/authService';
 import AuthLayout, { SubmitPill } from '../components/auth/AuthLayout';
+
+// Mirrors the backend rule in middleware/validation.js (newPassword). Returns a message or ''.
+export const passwordProblem = (pw) =>
+  pw.length < 8 ? 'Password must be at least 8 characters.'
+    : !/[A-Za-z]/.test(pw) ? 'Password must contain a letter.'
+      : !/[0-9]/.test(pw) ? 'Password must contain a number.'
+        : '';
 
 const ROLES = [
   ['fleet_manager', 'Fleet manager'],
@@ -12,8 +19,10 @@ const ROLES = [
 ];
 
 export default function RegisterPage() {
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [doneMessage, setDoneMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [agreed, setAgreed] = useState(false);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -24,6 +33,7 @@ export default function RegisterPage() {
   });
 
   const handleChange = (e) => {
+    setFieldErrors({ ...fieldErrors, [e.target.name]: undefined });
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
@@ -34,18 +44,29 @@ export default function RegisterPage() {
       toast.error('Passwords do not match');
       return;
     }
-    if (form.password.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    const pwProblem = passwordProblem(form.password);
+    if (pwProblem) {
+      setFieldErrors({ password: pwProblem });
+      return;
+    }
+    if (form.phone && !/^[0-9]{10,15}$/.test(form.phone)) {
+      setFieldErrors({ phone: 'Phone must be 10-15 digits, numbers only.' });
+      return;
+    }
+    if (!agreed) {
+      toast.error('Please accept the Terms and Privacy Policy to continue.');
       return;
     }
 
     setLoading(true);
     try {
       const { confirmPassword, ...dataToSend } = form;
-      await authService.register(dataToSend);
-      toast.success('Account created! Please sign in.');
-      navigate('/login');
+      if (!dataToSend.phone) delete dataToSend.phone;
+      const res = await authService.register(dataToSend);
+      setDoneMessage(res.data.message);
     } catch (err) {
+      const errors = err.response?.data?.errors;
+      if (errors) setFieldErrors(Object.fromEntries(errors.map((x) => [x.field, x.message])));
       toast.error(err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
@@ -55,7 +76,7 @@ export default function RegisterPage() {
   // View state for the fleet-bay scene; one truck part docks per filled field.
   const filled = [form.name, form.email, form.phone, form.password, form.confirmPassword].filter(Boolean).length;
   const mismatch = form.confirmPassword !== '' && form.confirmPassword !== form.password;
-  const ready = form.password.length >= 6 && form.password === form.confirmPassword && !!form.name && !!form.email;
+  const ready = !passwordProblem(form.password) && form.password === form.confirmPassword && !!form.name && !!form.email;
   const readout = loading
     ? { tone: 'busy', text: 'Registering · rolling off the bay' }
     : ready
@@ -71,7 +92,14 @@ export default function RegisterPage() {
       readout={{ ...readout, meta: 'Role-based access' }}
       footer={<>Already on the board? <Link to="/login" className="font-semibold text-ink underline decoration-signal decoration-2 underline-offset-4 hover:decoration-ink">Sign in</Link></>}
     >
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {doneMessage ? (
+        <div role="status" className="rounded-panel border border-ok/30 bg-ok/5 px-4 py-4 text-[15px] text-ink">
+          <p className="font-semibold">Check your inbox</p>
+          <p className="mt-1 text-ink/75">{doneMessage}</p>
+          <Link to="/login" className="btn btn-primary mt-4">Go to sign in</Link>
+        </div>
+      ) : (
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <fieldset>
           <legend className="label">Role</legend>
           <div className="mt-1 flex flex-wrap gap-1.5">
@@ -94,18 +122,21 @@ export default function RegisterPage() {
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="reg-email" className="label">Email address</label>
-            <input id="reg-email" type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" placeholder="john@transitops.com" className="field py-3" />
+            <input id="reg-email" type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" placeholder="john@transitops.com" aria-invalid={!!fieldErrors.email || undefined} className={`field py-3 ${fieldErrors.email ? 'field-error' : ''}`} />
+            {fieldErrors.email && <p className="error-text">{fieldErrors.email}</p>}
           </div>
           <div>
             <label htmlFor="reg-phone" className="label">Phone <span className="normal-case tracking-normal text-muted/70">(optional)</span></label>
-            <input id="reg-phone" type="tel" name="phone" value={form.phone} onChange={handleChange} autoComplete="tel" placeholder="9876543210" className="field py-3" />
+            <input id="reg-phone" type="tel" name="phone" value={form.phone} onChange={handleChange} autoComplete="tel" inputMode="numeric" placeholder="9876543210" aria-invalid={!!fieldErrors.phone || undefined} className={`field py-3 ${fieldErrors.phone ? 'field-error' : ''}`} />
+            {fieldErrors.phone && <p className="error-text">{fieldErrors.phone}</p>}
           </div>
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <div>
             <label htmlFor="reg-password" className="label">Password</label>
-            <input id="reg-password" type="password" name="password" value={form.password} onChange={handleChange} required autoComplete="new-password" placeholder="Min 6 characters" className="field py-3" />
+            <input id="reg-password" type="password" name="password" value={form.password} onChange={handleChange} required minLength={8} autoComplete="new-password" placeholder="8+ chars, letter + number" aria-invalid={!!fieldErrors.password || undefined} aria-describedby="reg-password-hint" className={`field py-3 ${fieldErrors.password ? 'field-error' : ''}`} />
+            <p id="reg-password-hint" className={fieldErrors.password ? 'error-text' : 'mt-1 text-[12px] text-muted'}>{fieldErrors.password || 'At least 8 characters with a letter and a number.'}</p>
           </div>
           <div>
             <label htmlFor="reg-confirm" className="label">Confirm password</label>
@@ -126,10 +157,16 @@ export default function RegisterPage() {
           </div>
         </div>
 
+        <label className="flex items-start gap-3 text-[14px] text-ink/75">
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} required className="mt-1 h-4 w-4 accent-ink" />
+          <span>I agree to the <Link to="/terms" target="_blank" className="font-semibold text-ink underline underline-offset-4">Terms of Service</Link> and <Link to="/privacy" target="_blank" className="font-semibold text-ink underline underline-offset-4">Privacy Policy</Link>.</span>
+        </label>
+
         <div className="pt-3">
           <SubmitPill loading={loading} busyLabel="Creating account…">Create account</SubmitPill>
         </div>
       </form>
+      )}
     </AuthLayout>
   );
 }

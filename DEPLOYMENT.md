@@ -51,6 +51,24 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
      `safety@transitops.com` (safety officer), `analyst@transitops.com` (financial analyst).
    - **Clean production start:** in the SQL Editor run only the `INSERT INTO roles …` block at the top of
      [`database/seed.sql`](database/seed.sql). Roles **must** exist or registration fails.
+5. **Auth + row-level security migration** (adds email verification and session columns, creates the
+   restricted `transitops_app` role and the RLS policies). Safe to re-run; run it again after any restore:
+   ```bash
+   cd backend
+   DATABASE_URL="<your neon url>" npm run db:migrate-auth
+   ```
+   Until this has run, the API logs `Row-level security is OFF` at startup.
+
+### Backups
+- **Neon point-in-time restore** is built in (Neon → Branches → Restore). The free plan keeps a short history window, so also:
+- **Nightly encrypted dump** via [`.github/workflows/db-backup.yml`](.github/workflows/db-backup.yml). In GitHub → Settings → Secrets → Actions add
+  `DATABASE_URL` and `BACKUP_PASSPHRASE` (a long random string; store it in your password manager, since without it the dumps can't be read).
+  Run it once by hand from the Actions tab to check it works. Each run uploads `transitops.sql.gz.gpg` as an artifact kept 30 days.
+- **Restore a dump:**
+  ```bash
+  gpg --batch --passphrase "$BACKUP_PASSPHRASE" -d transitops.sql.gz.gpg | gunzip | psql "$TARGET_DATABASE_URL"
+  cd backend && DATABASE_URL="$TARGET_DATABASE_URL" npm run db:migrate-auth   # dumps skip role grants
+  ```
 
 ---
 
@@ -77,6 +95,10 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
    | `JWT_SECRET` | a long random string — generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
    | `JWT_EXPIRE` | `7d` |
    | `NODE_ENV` | `production` |
+   | `FRONTEND_URL` | your Vercel URL, e.g. `https://transitops.vercel.app` (used in email links) |
+   | `RESEND_API_KEY` | from [resend.com](https://resend.com) → API Keys. Without it, emails are only printed to the logs |
+   | `EMAIL_FROM` | e.g. `TransitOps <no-reply@yourdomain.com>` (domain must be verified in Resend; `onboarding@resend.dev` works for testing to your own address only) |
+   | `SENTRY_DSN` | optional; from a Sentry **Node/Express** project. Error tracking is off without it |
 
    Do **not** set `PORT`; Render injects it.
 4. **Create Web Service** and wait for "Live". Check:
@@ -107,8 +129,10 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
    | Key | Value |
    |---|---|
    | `REACT_APP_API_BASE_URL` | `https://transitops-backend.onrender.com/api` (your Render URL + `/api`, no trailing slash) |
+   | `REACT_APP_SENTRY_DSN` | optional; from a Sentry **React** project |
 
    The Socket.io URL is derived from this automatically (it strips `/api`).
+   **Analytics:** Vercel project → Analytics → Enable. The script is already in `public/index.html`; no env var needed.
 4. **Deploy.** [`frontend/vercel.json`](frontend/vercel.json) rewrites every path to `index.html`, so deep links such as `/login`, `/reports` or `/track/<id>` survive a refresh.
 
 > CRA bakes `REACT_APP_*` values in at build time — after changing one, **Redeploy** the project.

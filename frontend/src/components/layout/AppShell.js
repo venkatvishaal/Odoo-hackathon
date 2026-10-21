@@ -4,9 +4,36 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import {
   BsGrid1X2, BsSignpost2, BsTruck, BsPersonBadge, BsWrench, BsFuelPump,
-  BsBarChartLine, BsBoxSeam, BsGeoAlt, BsList, BsX, BsBoxArrowRight,
+  BsBarChartLine, BsBoxSeam, BsGeoAlt, BsList, BsX, BsBoxArrowRight, BsGear,
 } from 'react-icons/bs';
 import { logoutSuccess } from '../../redux/slices/authSlice';
+import authService from '../../services/authService';
+import Onboarding from './Onboarding';
+
+// Browser tab titles. Unknown paths fall back to the bare product name.
+const TITLES = {
+  '/': 'Smart transport operations',
+  '/login': 'Sign in',
+  '/register': 'Create account',
+  '/forgot-password': 'Forgot password',
+  '/reset-password': 'Reset password',
+  '/verify-email': 'Verify email',
+  '/dashboard': 'Dashboard',
+  '/trips': 'Trips',
+  '/vehicles': 'Vehicles',
+  '/drivers': 'Drivers',
+  '/maintenance': 'Maintenance',
+  '/fuel-logs': 'Fuel & expenses',
+  '/reports': 'Reports',
+  '/shared-search': 'Shared shipments',
+  '/track': 'Track cargo',
+  '/account': 'Your account',
+  '/privacy': 'Privacy policy',
+  '/terms': 'Terms of service',
+};
+
+// These pages bring their own full-screen layout when signed out.
+const STANDALONE = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
 
 // Roles mirror the <PrivateRoute allowedRoles> in App.js; omitted roles = every signed-in user.
 const NAV = [
@@ -99,6 +126,9 @@ function UserFooter({ user, onLogout }) {
         <p className="truncate text-[13px] font-medium text-paper">{name}</p>
         <p className="font-mono text-[10px] uppercase tracking-[0.08em] text-signal">{formatRole(user?.role)}</p>
       </div>
+      <Link to="/account" className="rounded p-2 text-paper/60 transition-colors hover:bg-paper/10 hover:text-paper" aria-label="Account settings" title="Account settings">
+        <BsGear aria-hidden="true" />
+      </Link>
       <button type="button" onClick={onLogout} className="rounded p-2 text-paper/60 transition-colors hover:bg-paper/10 hover:text-paper" aria-label="Log out" title="Log out">
         <BsBoxArrowRight aria-hidden="true" />
       </button>
@@ -133,8 +163,15 @@ export default function AppShell({ children }) {
   // Close the mobile drawer on any route change.
   useEffect(() => { closeDrawer(); }, [location.pathname]);
 
-  const handleLogout = () => {
+  useEffect(() => {
+    const page = TITLES[location.pathname] || (location.pathname.startsWith('/track/') ? 'Track cargo' : null);
+    document.title = page ? `${page} · TransitOps` : 'TransitOps';
+  }, [location.pathname]);
+
+  const handleLogout = async () => {
     closeDrawer();
+    // Revokes this user's tokens server-side; sign out locally even if the server is unreachable.
+    await authService.logout().catch(() => {});
     dispatch(logoutSuccess());
     toast.info('Logged out successfully');
     navigate('/login');
@@ -142,7 +179,7 @@ export default function AppShell({ children }) {
 
   if (!isAuthenticated) {
     // Landing and auth pages bring their own navigation.
-    if (['/', '/login', '/register'].includes(location.pathname)) return children;
+    if (STANDALONE.includes(location.pathname)) return children;
     return (
       <div className="flex min-h-screen flex-col">
         <PublicBar />
@@ -194,6 +231,8 @@ export default function AppShell({ children }) {
           <UserFooter user={user} onLogout={handleLogout} />
         </div>
       </dialog>
+
+      <Onboarding key={user?.id} user={user} />
 
       <main id="main" tabIndex={-1} className="mx-auto max-w-content px-4 py-6 outline-none sm:px-6 lg:px-10 lg:py-8">
         {children}

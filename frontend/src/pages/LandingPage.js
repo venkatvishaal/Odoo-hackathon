@@ -701,12 +701,13 @@ function Footer() {
     ['Product', ANCHORS.map((a) => [a.label, a.href, 'anchor'])],
     ['App', [['Sign in', '/login'], ['Register', '/register'], ['Track cargo', '/track']]],
     ['Project', [['GitHub repository', REPO_URL, 'external']]],
+    ['Legal', [['Privacy policy', '/privacy'], ['Terms of service', '/terms']]],
   ];
   const linkCls = 'text-paper/70 transition-colors hover:text-paper';
   return (
     <footer className="overflow-hidden bg-ink text-paper">
       <div className={`${WRAP} grid gap-12 pb-10 pt-20 md:grid-cols-12`}>
-        <div className="md:col-span-6">
+        <div className="md:col-span-4">
           <Logo inverted />
           <p className="mt-4 max-w-[32ch] text-[15px] leading-relaxed text-paper/55">Smart transport operations platform. Built for the Odoo Hackathon.</p>
         </div>
