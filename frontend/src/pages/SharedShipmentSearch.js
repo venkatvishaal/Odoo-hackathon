@@ -70,7 +70,7 @@ export default function SharedShipmentSearch() {
 
     setBookingLoading(selectedRoute.route_id);
     try {
-      await api.post('/vehicles/shared-booking', {
+      const res = await api.post('/vehicles/shared-booking', {
         route_id: selectedRoute.route_id,
         pickup_location: searchParams.pickup,
         delivery_location: searchParams.destination,
@@ -78,7 +78,7 @@ export default function SharedShipmentSearch() {
         planned_distance: bookingForm.planned_distance,
         price_quote: bookingForm.price_quote || undefined
       });
-      toast.success('Shared booking created successfully!');
+      toast.success(res.data.message);
       setResults(results.filter(r => r.route_id !== selectedRoute.route_id));
       setShowBookingModal(false);
       setSelectedRoute(null);

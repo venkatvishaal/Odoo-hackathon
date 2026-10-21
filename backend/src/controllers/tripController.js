@@ -1,6 +1,22 @@
 const { Trip, Vehicle, Driver, FuelLog } = require('../models');
 const sequelize = require('../config/database');
 
+// A truck can carry several shipments at once; it (and its driver) only frees up
+// when the last Dispatched trip ends. Call after the finishing trip's status changed.
+const releaseIfIdle = async (trip, t) => {
+  const stillOut = (where) => Trip.count({ where: { ...where, status: 'Dispatched' }, transaction: t });
+  const freed = { vehicle: false, driver: false };
+  if (!(await stillOut({ vehicle_id: trip.vehicle_id }))) {
+    await Vehicle.update({ status: 'Available' }, { where: { id: trip.vehicle_id, status: 'On Trip' }, transaction: t });
+    freed.vehicle = true;
+  }
+  if (!(await stillOut({ driver_id: trip.driver_id }))) {
+    await Driver.update({ status: 'Available' }, { where: { id: trip.driver_id, status: 'On Trip' }, transaction: t });
+    freed.driver = true;
+  }
+  return freed;
+};
+
 const tripController = {
   getAll: async (req, res) => {
     try {
@@ -121,13 +137,44 @@ const tripController = {
       const vehicle = await Vehicle.findByPk(trip.vehicle_id, { transaction: t, lock: true });
       const driver = await Driver.findByPk(trip.driver_id, { transaction: t, lock: true });
 
-      if (vehicle.status !== 'Available') {
-        await t.rollback();
-        return res.status(400).json({ success: false, message: `Vehicle is now "${vehicle.status}" and cannot be dispatched` });
-      }
-      if (driver.status !== 'Available') {
-        await t.rollback();
-        return res.status(400).json({ success: false, message: `Driver is now "${driver.status}" and cannot be dispatched` });
+      // A truck already on the road can carry this trip too (shared load),
+      // as long as the same driver is driving it and there is room left.
+      const onBoard = vehicle.status === 'On Trip'
+        ? await Trip.findAll({
+          where: { vehicle_id: vehicle.id, status: 'Dispatched' },
+          include: [{ model: Driver, as: 'driver', attributes: ['name'] }],
+          transaction: t
+        })
+        : [];
+      const joining = onBoard.length > 0;
+
+      if (joining) {
+        const other = onBoard.find((x) => x.driver_id !== trip.driver_id);
+        if (other) {
+          await t.rollback();
+          return res.status(400).json({
+            success: false,
+            message: `${vehicle.registration_number} is on the road with ${other.driver?.name || 'another driver'}. Assign this trip to that driver or wait until the truck is back.`
+          });
+        }
+        const load = onBoard.reduce((sum, x) => sum + parseFloat(x.cargo_weight), 0);
+        const free = parseFloat(vehicle.max_load_capacity_kg) - load;
+        if (parseFloat(trip.cargo_weight) > free) {
+          await t.rollback();
+          return res.status(400).json({
+            success: false,
+            message: `Only ${Math.max(free, 0).toFixed(2)} kg free on ${vehicle.registration_number} right now (this trip needs ${parseFloat(trip.cargo_weight).toFixed(2)} kg).`
+          });
+        }
+      } else {
+        if (vehicle.status !== 'Available') {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: `Vehicle is now "${vehicle.status}" and cannot be dispatched` });
+        }
+        if (driver.status !== 'Available') {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: `Driver is now "${driver.status}" and cannot be dispatched` });
+        }
       }
 
       // Atomic state transition
@@ -141,7 +188,13 @@ const tripController = {
       const io = req.app.get('io');
       if (io) io.emit('fleet:update', { event: 'trip_dispatched', tripId: trip.id });
 
-      res.json({ success: true, message: 'Trip dispatched. Vehicle and driver are now On Trip.', data: trip });
+      res.json({
+        success: true,
+        message: joining
+          ? `Trip dispatched on ${vehicle.registration_number}, which is already en route with this driver.`
+          : 'Trip dispatched. Vehicle and driver are now On Trip.',
+        data: trip
+      });
     } catch (error) {
       await t.rollback();
       console.error('Dispatch trip error:', error);
@@ -161,7 +214,6 @@ const tripController = {
       }
 
       const vehicle = await Vehicle.findByPk(trip.vehicle_id, { transaction: t, lock: true });
-      const driver = await Driver.findByPk(trip.driver_id, { transaction: t, lock: true });
 
       // Update trip
       await trip.update({
@@ -169,9 +221,9 @@ const tripController = {
         final_odometer, fuel_consumed_liters
       }, { transaction: t });
 
-      // Update vehicle odometer and restore status
-      await vehicle.update({ odometer: final_odometer, status: 'Available' }, { transaction: t });
-      await driver.update({ status: 'Available' }, { transaction: t });
+      // Shared loads finish in any order; never wind the odometer back.
+      await vehicle.update({ odometer: Math.max(parseFloat(vehicle.odometer), parseFloat(final_odometer)) }, { transaction: t });
+      const freed = await releaseIfIdle(trip, t);
 
       // Auto-create fuel log entry
       await FuelLog.create({
@@ -187,7 +239,13 @@ const tripController = {
       const io = req.app.get('io');
       if (io) io.emit('fleet:update', { event: 'trip_completed', tripId: trip.id });
 
-      res.json({ success: true, message: 'Trip completed. Vehicle odometer updated. Driver and vehicle restored to Available.', data: trip });
+      res.json({
+        success: true,
+        message: freed.vehicle
+          ? 'Trip completed. Vehicle odometer updated. Driver and vehicle restored to Available.'
+          : 'Trip completed. The vehicle stays On Trip: it still has other shipments on board.',
+        data: trip
+      });
     } catch (error) {
       await t.rollback();
       console.error('Complete trip error:', error);
@@ -209,12 +267,7 @@ const tripController = {
       await trip.update({ status: 'Cancelled' }, { transaction: t });
 
       // Only restore if was Dispatched (vehicle/driver were locked)
-      if (wasDispatched) {
-        const vehicle = await Vehicle.findByPk(trip.vehicle_id, { transaction: t });
-        const driver = await Driver.findByPk(trip.driver_id, { transaction: t });
-        if (vehicle) await vehicle.update({ status: 'Available' }, { transaction: t });
-        if (driver) await driver.update({ status: 'Available' }, { transaction: t });
-      }
+      if (wasDispatched) await releaseIfIdle(trip, t);
 
       await t.commit();
 

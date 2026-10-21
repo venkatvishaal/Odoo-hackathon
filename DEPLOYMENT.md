@@ -51,7 +51,7 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
      `safety@transitops.com` (safety officer), `analyst@transitops.com` (financial analyst).
    - **Clean production start:** in the SQL Editor run only the `INSERT INTO roles …` block at the top of
      [`database/seed.sql`](database/seed.sql). Roles **must** exist or registration fails.
-5. **Auth + row-level security migration** (adds email verification and session columns, creates the
+5. **Auth + row-level security migration** (adds the session columns, creates the
    restricted `transitops_app` role and the RLS policies). Safe to re-run; run it again after any restore:
    ```bash
    cd backend
@@ -97,12 +97,10 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
    | Key | Value |
    |---|---|
    | `DATABASE_URL` | the Neon direct connection string |
-   | `JWT_SECRET` | a long random string — generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
+   | `JWT_SECRET` | **required** (the server won't start without it): a long random string — generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
    | `JWT_EXPIRE` | `7d` |
    | `NODE_ENV` | `production` |
-   | `FRONTEND_URL` | your Vercel URL, e.g. `https://transitops.vercel.app` (used in email links) |
-   | `RESEND_API_KEY` | from [resend.com](https://resend.com) → API Keys. Without it, emails are only printed to the logs |
-   | `EMAIL_FROM` | e.g. `TransitOps <no-reply@yourdomain.com>` (domain must be verified in Resend; `onboarding@resend.dev` works for testing to your own address only) |
+   | `FRONTEND_URL` | your Vercel URL, e.g. `https://transitops.vercel.app` |
    | `SENTRY_DSN` | optional; from a Sentry **Node/Express** project. Error tracking is off without it |
 
    Do **not** set `PORT`; Render injects it.

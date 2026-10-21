@@ -30,9 +30,9 @@ export function PrivacyPage() {
         <li>Error reports: when something crashes, technical details are sent to Sentry so we can fix it. We turn off sending personal data to Sentry.</li>
       </ul>
       <h2>Why we use it</h2>
-      <p>To run the service: sign you in, send verification and password-reset emails, show your fleet data to the people in your organisation who are allowed to see it, and keep the service working.</p>
+      <p>To run the service: sign you in, show your fleet data to the people in your organisation who are allowed to see it, and keep the service working.</p>
       <h2>Who we share it with</h2>
-      <p>Only the processors that run the service: Neon (database), Render (API hosting), Vercel (website hosting and analytics), Resend (email) and Sentry (error tracking). We don't sell your data.</p>
+      <p>Only the processors that run the service: Neon (database), Render (API hosting), Vercel (website hosting and analytics) and Sentry (error tracking). We don't sell your data.</p>
       <h2>How long we keep it</h2>
       <p>Your account lives until you delete it. Encrypted database backups are kept for 30 days.</p>
       <h2>Your choices</h2>

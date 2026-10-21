@@ -15,9 +15,6 @@ const TITLES = {
   '/': 'Smart transport operations',
   '/login': 'Sign in',
   '/register': 'Create account',
-  '/forgot-password': 'Forgot password',
-  '/reset-password': 'Reset password',
-  '/verify-email': 'Verify email',
   '/dashboard': 'Dashboard',
   '/trips': 'Trips',
   '/vehicles': 'Vehicles',
@@ -33,7 +30,7 @@ const TITLES = {
 };
 
 // These pages bring their own full-screen layout when signed out.
-const STANDALONE = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
+const STANDALONE = ['/', '/login', '/register'];
 
 // Roles mirror the <PrivateRoute allowedRoles> in App.js; omitted roles = every signed-in user.
 const NAV = [

@@ -67,6 +67,24 @@ const driverController = {
       const updateData = {};
       allowedFields.forEach(f => { if (req.body[f] !== undefined) updateData[f] = req.body[f]; });
 
+      if (updateData.status && driver.status === 'On Trip' && updateData.status !== 'On Trip') {
+        return res.status(400).json({
+          success: false,
+          message: `${driver.name} is on a trip. Their status changes automatically when the trip ends.`,
+          errors: [{ field: 'status', message: 'Driver is on a trip' }]
+        });
+      }
+      const expiry = updateData.license_expiry_date || driver.license_expiry_date;
+      const nextStatus = updateData.status || driver.status;
+      const touchesAvailability = updateData.status === 'Available' || updateData.license_expiry_date;
+      if (touchesAvailability && nextStatus === 'Available' && expiry < new Date().toISOString().split('T')[0]) {
+        return res.status(400).json({
+          success: false,
+          message: `License expired on ${expiry}. Enter the renewed expiry date before making ${driver.name} available.`,
+          errors: [{ field: 'license_expiry_date', message: 'License is expired' }]
+        });
+      }
+
       await driver.update(updateData);
       res.json({ success: true, message: 'Driver updated', data: driver });
     } catch (error) {

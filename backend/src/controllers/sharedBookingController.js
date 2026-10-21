@@ -259,7 +259,9 @@ const sharedBookingController = {
         driverId = availableDriver.id;
       }
 
-      // Create the shared trip
+      // Truck already en route: the shipment is accepted straight onto it (capacity checked above),
+      // so nobody has to dispatch it again. Otherwise it waits as a Draft for the next dispatch.
+      const enRoute = !!activeTrip;
       const trip = await Trip.create({
         vehicle_id: vehicle.id,
         driver_id: driverId,
@@ -267,7 +269,8 @@ const sharedBookingController = {
         destination: delivery_location,
         cargo_weight: reqWeight,
         planned_distance: parseFloat(planned_distance),
-        status: 'Draft',
+        status: enRoute ? 'Dispatched' : 'Draft',
+        dispatched_at: enRoute ? new Date() : null,
         is_shared: true,
         price_quote: price_quote || (parseFloat(route.price_per_kg) * reqWeight),
         route_id: route.id
@@ -287,7 +290,9 @@ const sharedBookingController = {
 
       res.status(201).json({
         success: true,
-        message: 'Shared booking created successfully',
+        message: enRoute
+          ? `Booked onto ${vehicle.registration_number}, which is already en route. The shipment is on its way.`
+          : 'Booked. The shipment goes out with this vehicle\'s next dispatch.',
         data: trip
       });
     } catch (error) {

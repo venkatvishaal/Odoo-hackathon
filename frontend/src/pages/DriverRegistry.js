@@ -5,21 +5,74 @@ import StatusBadge from '../components/ui/StatusBadge';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Modal from '../components/ui/Modal';
 import { toast } from 'react-toastify';
-import { FaUserPlus, FaTrash, FaIdCard, FaStar, FaPhone, FaCalendarAlt, FaPlus } from 'react-icons/fa';
+import { FaUserPlus, FaTrash, FaIdCard, FaStar, FaPhone, FaCalendarAlt, FaPlus, FaEdit } from 'react-icons/fa';
+import driverService from '../services/driverService';
+
+const EMPTY_FORM = {
+  name: '',
+  license_number: '',
+  license_category: 'LMV',
+  license_expiry_date: '',
+  contact_number: '',
+  safety_score: '5.0'
+};
+const today = () => new Date().toISOString().split('T')[0];
 
 export default function DriverRegistry() {
   const dispatch = useDispatch();
   const { list: drivers, loading } = useSelector((state) => state.drivers);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    license_number: '',
-    license_category: 'LMV',
-    license_expiry_date: '',
-    contact_number: '',
-    safety_score: '5.0'
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
+  // null = registering a new driver; otherwise the driver being renewed/edited.
+  const [editing, setEditing] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+
+  const openAdd = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setValidationErrors({});
+    setShowModal(true);
+  };
+
+  const openEdit = (d) => {
+    const expired = d.license_expiry_date < today();
+    setEditing(d);
+    setForm({
+      name: d.name,
+      license_number: d.license_number,
+      license_category: d.license_category,
+      license_expiry_date: d.license_expiry_date,
+      contact_number: d.contact_number,
+      safety_score: String(d.safety_score),
+      // Renewing an expired license usually means the driver can work again; the manager can still change it.
+      status: d.status === 'On Trip' ? 'On Trip' : expired ? 'Available' : d.status
+    });
+    setValidationErrors({});
+    setShowModal(true);
+  };
+
+  const showErrors = (payload, fallback) => {
+    if (payload && typeof payload === 'object' && payload.errors) {
+      const errMap = {};
+      payload.errors.forEach(err => { errMap[err.field] = err.message; });
+      setValidationErrors(errMap);
+    }
+    toast.error((payload && typeof payload === 'object' ? payload.message : payload) || fallback);
+  };
+
+  const handleUpdate = async () => {
+    const { status, ...fields } = form;
+    // "On Trip" is set by dispatching, never by hand.
+    const data = editing.status === 'On Trip' ? fields : { ...fields, status };
+    try {
+      await driverService.update(editing.id, data);
+      toast.success(`${form.name} updated`);
+      setShowModal(false);
+      dispatch(fetchDrivers());
+    } catch (err) {
+      showErrors(err.response?.data, 'Failed to update driver');
+    }
+  };
 
   useEffect(() => {
     dispatch(fetchDrivers());
@@ -35,28 +88,15 @@ export default function DriverRegistry() {
   const handleAdd = async (e) => {
     e.preventDefault();
     setValidationErrors({});
+    if (editing) return handleUpdate();
 
     const res = await dispatch(addDriver(form));
     if (addDriver.fulfilled.match(res)) {
       toast.success('Driver registered successfully');
       setShowModal(false);
-      setForm({
-        name: '',
-        license_number: '',
-        license_category: 'LMV',
-        license_expiry_date: '',
-        contact_number: '',
-        safety_score: '5.0'
-      });
+      setForm(EMPTY_FORM);
     } else {
-      const errMsg = res.payload;
-      if (typeof errMsg === 'object' && errMsg.errors) {
-        const errMap = {};
-        errMsg.errors.forEach(err => { errMap[err.field] = err.message; });
-        setValidationErrors(errMap);
-      } else {
-        toast.error(res.payload || 'Failed to register driver');
-      }
+      showErrors(res.payload, 'Failed to register driver');
     }
   };
 
@@ -98,7 +138,7 @@ export default function DriverRegistry() {
             <p className="text-gray-500 text-sm mt-1">Monitor compliance, licensing validity, and safety metrics</p>
           </div>
           <button 
-            onClick={() => setShowModal(true)}
+            onClick={openAdd}
             className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 transition font-bold shadow-sm"
           >
             <FaPlus /> Add Driver
@@ -159,12 +199,24 @@ export default function DriverRegistry() {
                           <span className="font-extrabold text-gray-700">{d.safety_score}</span>
                           <span className="text-xs text-gray-400">/ 10</span>
                         </div>
-                        <button 
-                          onClick={() => handleDelete(d.id)}
-                          className="text-red-500 hover:bg-red-50 p-2 rounded-full transition"
-                        >
-                          <FaTrash />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openEdit(d)}
+                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg transition ${
+                              licenseAlert ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-blue-600 hover:bg-blue-50'
+                            }`}
+                            aria-label={`Renew license or edit ${d.name}`}
+                          >
+                            <FaEdit /> {licenseAlert ? 'Renew license' : 'Edit'}
+                          </button>
+                          <button
+                            onClick={() => handleDelete(d.id)}
+                            className="text-red-500 hover:bg-red-50 p-2 rounded-full transition"
+                            aria-label={`Remove ${d.name}`}
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -175,7 +227,12 @@ export default function DriverRegistry() {
         )}
 
         {/* Modal */}
-        <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Register Driver">
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editing ? `Update ${editing.name}` : 'Register Driver'}
+          description={editing ? 'Enter the renewed license details. Status changes take effect immediately.' : undefined}
+        >
           <form onSubmit={handleAdd} className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">Driver Name</label>
@@ -228,8 +285,13 @@ export default function DriverRegistry() {
                   name="license_expiry_date"
                   value={form.license_expiry_date}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg p-3 text-sm outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-700"
+                  className={`w-full border rounded-lg p-3 text-sm outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-700 ${
+                    validationErrors.license_expiry_date ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 />
+                {validationErrors.license_expiry_date && (
+                  <p className="text-[11px] text-red-500 font-bold mt-1 uppercase tracking-wide">{validationErrors.license_expiry_date}</p>
+                )}
               </div>
             </div>
 
@@ -261,6 +323,34 @@ export default function DriverRegistry() {
               </div>
             </div>
 
+            {editing && (
+              <div>
+                <label htmlFor="driver-status" className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                {editing.status === 'On Trip' ? (
+                  <p className="text-sm text-gray-600">On Trip (changes automatically when the trip ends)</p>
+                ) : (
+                  <>
+                    <select
+                      id="driver-status"
+                      name="status"
+                      value={form.status}
+                      onChange={handleChange}
+                      className={`w-full border rounded-lg p-3 text-sm outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.status ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <option value="Available">Available</option>
+                      <option value="Off Duty">Off Duty</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                    {validationErrors.status && (
+                      <p className="text-[11px] text-red-500 font-bold mt-1 uppercase tracking-wide">{validationErrors.status}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3 pt-4">
               <button
                 type="button"
@@ -273,7 +363,7 @@ export default function DriverRegistry() {
                 type="submit"
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm shadow-sm"
               >
-                Register Driver
+                {editing ? 'Save changes' : 'Register Driver'}
               </button>
             </div>
           </form>

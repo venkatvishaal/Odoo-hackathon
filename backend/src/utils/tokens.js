@@ -1,26 +1,14 @@
 const jwt = require('jsonwebtoken');
 
-const secret = () => process.env.JWT_SECRET || 'transitops_jwt_secret_change_in_prod';
+// server.js refuses to start without JWT_SECRET, so there is deliberately no fallback here:
+// a default secret in a public repo would let anyone forge a login token.
+const secret = () => process.env.JWT_SECRET;
 
-// `tv` = users.token_version. Bumping it (logout, password reset, delete) kills every token issued before.
+// `tv` = users.token_version. Bumping it (logout, account deletion) kills every token issued before.
 const signSession = (user, roleName) => jwt.sign(
   { id: user.id, email: user.email, role: roleName, tv: user.token_version },
   secret(),
   { expiresIn: process.env.JWT_EXPIRE || '7d' }
 );
 
-const signVerify = (user) => jwt.sign({ id: user.id, purpose: 'verify' }, secret(), { expiresIn: '24h' });
-
-const signReset = (user) => jwt.sign({ id: user.id, purpose: 'reset', tv: user.token_version }, secret(), { expiresIn: '30m' });
-
-// Returns the payload, or null if invalid, expired or minted for another purpose.
-const readPurposeToken = (token, purpose) => {
-  try {
-    const payload = jwt.verify(String(token || ''), secret());
-    return payload.purpose === purpose ? payload : null;
-  } catch {
-    return null;
-  }
-};
-
-module.exports = { signSession, signVerify, signReset, readPurposeToken };
+module.exports = { signSession };

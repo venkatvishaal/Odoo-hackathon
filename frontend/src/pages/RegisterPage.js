@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import authService from '../services/authService';
+import { loginSuccess } from '../redux/slices/authSlice';
 import AuthLayout, { SubmitPill } from '../components/auth/AuthLayout';
 
 // Mirrors the backend rule in middleware/validation.js (newPassword). Returns a message or ''.
@@ -19,8 +21,9 @@ const ROLES = [
 ];
 
 export default function RegisterPage() {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [doneMessage, setDoneMessage] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [agreed, setAgreed] = useState(false);
   const [form, setForm] = useState({
@@ -63,7 +66,10 @@ export default function RegisterPage() {
       const { confirmPassword, ...dataToSend } = form;
       if (!dataToSend.phone) delete dataToSend.phone;
       const res = await authService.register(dataToSend);
-      setDoneMessage(res.data.message);
+      // No email verification yet (needs a sending domain): sign straight in.
+      dispatch(loginSuccess({ user: res.data.data, token: res.data.token }));
+      toast.success(`Welcome to TransitOps, ${res.data.data.name}!`);
+      navigate('/dashboard');
     } catch (err) {
       const errors = err.response?.data?.errors;
       if (errors) setFieldErrors(Object.fromEntries(errors.map((x) => [x.field, x.message])));
@@ -92,13 +98,6 @@ export default function RegisterPage() {
       readout={{ ...readout, meta: 'Role-based access' }}
       footer={<>Already on the board? <Link to="/login" className="font-semibold text-ink underline decoration-signal decoration-2 underline-offset-4 hover:decoration-ink">Sign in</Link></>}
     >
-      {doneMessage ? (
-        <div role="status" className="rounded-panel border border-ok/30 bg-ok/5 px-4 py-4 text-[15px] text-ink">
-          <p className="font-semibold">Check your inbox</p>
-          <p className="mt-1 text-ink/75">{doneMessage}</p>
-          <Link to="/login" className="btn btn-primary mt-4">Go to sign in</Link>
-        </div>
-      ) : (
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <fieldset>
           <legend className="label">Role</legend>
@@ -166,7 +165,6 @@ export default function RegisterPage() {
           <SubmitPill loading={loading} busyLabel="Creating account…">Create account</SubmitPill>
         </div>
       </form>
-      )}
     </AuthLayout>
   );
 }

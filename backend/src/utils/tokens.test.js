@@ -1,24 +1,17 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const jwt = require('jsonwebtoken');
 process.env.JWT_SECRET = 'test-secret';
-const { signVerify, signReset, signSession, readPurposeToken } = require('./tokens');
+const { signSession } = require('./tokens');
 
-const user = { id: 'u1', email: 'a@b.c', token_version: 3 };
-
-test('purpose tokens cannot be swapped', () => {
-  assert.equal(readPurposeToken(signVerify(user), 'reset'), null);
-  assert.equal(readPurposeToken(signReset(user), 'verify'), null);
-  assert.equal(readPurposeToken(signSession(user, 'driver'), 'reset'), null);
-  assert.equal(readPurposeToken(signVerify(user), 'verify').id, 'u1');
-});
-
-test('reset token carries token_version so a bump invalidates it', () => {
-  const payload = readPurposeToken(signReset(user), 'reset');
+test('session token carries id, role and token_version', () => {
+  const payload = jwt.verify(signSession({ id: 'u1', email: 'a@b.c', token_version: 3 }, 'driver'), 'test-secret');
+  assert.equal(payload.id, 'u1');
+  assert.equal(payload.role, 'driver');
   assert.equal(payload.tv, 3);
-  assert.notEqual(payload.tv, user.token_version + 1);
 });
 
-test('garbage tokens are rejected', () => {
-  assert.equal(readPurposeToken('nope', 'verify'), null);
-  assert.equal(readPurposeToken(undefined, 'verify'), null);
+test('a token signed with another secret is rejected', () => {
+  const token = signSession({ id: 'u1', email: 'a@b.c', token_version: 0 }, 'driver');
+  assert.throws(() => jwt.verify(token, 'transitops_jwt_secret_change_in_prod'));
 });

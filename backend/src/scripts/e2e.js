@@ -1,13 +1,11 @@
 // End-to-end API test against a running server. Creates its own data and deletes it afterwards.
 //   npm run test:e2e                       (server on http://localhost:5000)
 //   API_URL=https://… npm run test:e2e     (another environment; needs DB access for cleanup)
-// Needs the demo users from `npm run db:seed` and the same JWT_SECRET as the server
-// (verification/reset links are minted here instead of being read from an inbox).
-// Each run makes 4 deliberate failed logins; the login limiter allows 10 per 15 min per IP,
+// Needs the demo users from `npm run db:seed`.
+// Each run makes 2 deliberate failed logins; the login limiter allows 10 per 15 min per IP,
 // so a third run in quick succession gets 429s. Restart the server to reset the counters.
 require('dotenv').config();
 const sequelize = require('../config/database');
-const { signVerify, signReset } = require('../utils/tokens');
 
 const API = (process.env.API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 const RUN = Date.now().toString(36);
@@ -34,7 +32,6 @@ const expect = (name, res, status, extra = () => true) => check(name, res.status
 const section = (title) => console.log(`\n${title}`);
 
 const login = async (email, password) => (await call('POST', '/auth/login', { body: { email, password } })).body.token;
-const userRow = async (email) => (await sequelize.query('SELECT * FROM users WHERE email = :email', { replacements: { email }, plain: true }));
 
 async function run() {
   section('Health & routing');
@@ -56,39 +53,25 @@ async function run() {
     (b) => b.errors?.some((e) => e.field === 'password'));
   expect('invalid email rejected', await call('POST', '/auth/register', { body: { name: 'E2E', email: 'not-an-email', password: 'Passw0rd1', role: 'driver' } }), 400);
   expect('invalid role rejected', await call('POST', '/auth/register', { body: { name: 'E2E', email: `role-${email}`, password: 'Passw0rd1', role: 'admin' } }), 400);
-  expect('register', await call('POST', '/auth/register', { body: { name: 'E2E Tester', email, password: 'Passw0rd1', role: 'driver' } }), 201);
+  expect('register signs in straight away (no email verification)', await call('POST', '/auth/register', { body: { name: 'E2E Tester', email, password: 'Passw0rd1', role: 'driver' } }), 201,
+    (b) => !!b.token && b.data.email === email && b.data.role === 'driver');
   expect('duplicate email → 409', await call('POST', '/auth/register', { body: { name: 'E2E Tester', email, password: 'Passw0rd1', role: 'driver' } }), 409);
 
-  section('Email verification');
-  expect('login before verifying → EMAIL_UNVERIFIED', await call('POST', '/auth/login', { body: { email, password: 'Passw0rd1' } }), 403, (b) => b.code === 'EMAIL_UNVERIFIED');
-  expect('resend verification', await call('POST', '/auth/resend-verification', { body: { email } }), 200);
-  expect('garbage verify token → 400', await call('POST', '/auth/verify-email', { body: { token: 'nope' } }), 400);
-  let user = await userRow(email);
-  expect('reset token cannot verify email', await call('POST', '/auth/verify-email', { body: { token: signReset(user) } }), 400);
-  expect('verify email', await call('POST', '/auth/verify-email', { body: { token: signVerify(user) } }), 200);
+  expect('verification endpoints are gone', await call('POST', '/auth/verify-email', { body: { token: 'x' } }), 404);
 
   section('Login, session & logout');
   expect('wrong password → 401', await call('POST', '/auth/login', { body: { email, password: 'Wrong1234' } }), 401);
   let token = await login(email, 'Passw0rd1');
-  check('login after verifying', !!token);
+  check('new account can sign in', !!token);
   expect('GET /auth/verify returns profile without secrets', await call('GET', '/auth/verify', { token }), 200,
     (b) => b.data.email === email && !('password_hash' in b.data) && !('token_version' in b.data));
   expect('no token → 401', await call('GET', '/trips'), 401);
-  expect('verification token is not a session', await call('GET', '/trips', { token: signVerify(user) }), 401);
   expect('logout', await call('POST', '/auth/logout', { token }), 200);
   expect('token rejected after logout', await call('GET', '/auth/verify', { token }), 401);
+  expect('password reset endpoints are gone', await call('POST', '/auth/forgot-password', { body: { email } }), 404);
+  token = await login(email, 'Passw0rd1');
+  check('sign back in after logout', !!token);
 
-  section('Password reset');
-  expect('forgot password (known email)', await call('POST', '/auth/forgot-password', { body: { email } }), 200);
-  expect('forgot password (unknown email) gives same answer', await call('POST', '/auth/forgot-password', { body: { email: `nobody-${email}` } }), 200);
-  user = await userRow(email);
-  const resetToken = signReset(user);
-  expect('reset rejects weak password', await call('POST', '/auth/reset-password', { body: { token: resetToken, password: 'weak' } }), 400);
-  expect('reset password', await call('POST', '/auth/reset-password', { body: { token: resetToken, password: 'NewPassw0rd' } }), 200);
-  expect('reset link is single-use', await call('POST', '/auth/reset-password', { body: { token: resetToken, password: 'Another1pw' } }), 400);
-  expect('old password no longer works', await call('POST', '/auth/login', { body: { email, password: 'Passw0rd1' } }), 401);
-  token = await login(email, 'NewPassw0rd');
-  check('new password works', !!token);
 
   section('Role-based access');
   expect('driver blocked from maintenance', await call('GET', '/maintenance', { token: tokens.driver }), 403);
@@ -169,6 +152,50 @@ async function run() {
   expect('book shared space', await call('POST', '/vehicles/shared-booking', { ...M, body: { route_id: r.body.data?.id, pickup_location: `E2E-A-${RUN}`, delivery_location: `E2E-B-${RUN}`, weight: 100, planned_distance: 20 } }), 201);
   expect('overbooking rejected', await call('POST', '/vehicles/shared-booking', { ...M, body: { route_id: r.body.data?.id, pickup_location: 'a', delivery_location: 'b', weight: 99999, planned_distance: 20 } }), 400);
 
+  section('Several shipments on one truck');
+  const sharedDraft = (await call('GET', '/trips', M)).body.data.find((t) => t.vehicle_id === vehicle.id && t.status === 'Draft');
+  if (sharedDraft) await call('POST', `/trips/${sharedDraft.id}/cancel`, M); // start from an empty truck
+  r = await call('POST', '/drivers', { ...M, body: { name: `E2E Driver2 ${RUN}`, license_number: `E2E-DL2-${RUN}`, license_category: 'LMV', license_expiry_date: '2030-01-01', contact_number: '9000000001' } });
+  const driver2 = r.body.data;
+  created.drivers.push(driver2?.id);
+  const draft = async (body) => (await call('POST', '/trips', { ...M, body: { ...tripBody, ...body } })).body.data;
+  const tA = await draft({ cargo_weight: 400 });
+  const tB = await draft({ cargo_weight: 300 });
+  const tC = await draft({ cargo_weight: 100, driver_id: driver2.id });
+  const tD = await draft({ cargo_weight: 500 });
+  check('four drafts created on the same truck', tA && tB && tC && tD);
+  expect('dispatch first trip', await call('POST', `/trips/${tA.id}/dispatch`, M), 200);
+  expect('second trip joins the truck en route (same driver, fits)', await call('POST', `/trips/${tB.id}/dispatch`, M), 200, (b) => /already en route/.test(b.message));
+  expect('different driver cannot join a truck that is out', await call('POST', `/trips/${tC.id}/dispatch`, M), 400, (b) => /on the road with/.test(b.message));
+  expect('over capacity cannot join (700 of 1000 kg used)', await call('POST', `/trips/${tD.id}/dispatch`, M), 400, (b) => /Only 300\.00 kg free/.test(b.message));
+  await call('POST', `/trips/${tC.id}/cancel`, M);
+  await call('POST', `/trips/${tD.id}/cancel`, M);
+  r = await call('POST', `/vehicles/${vehicle.id}/publish-route`, { ...M, body: { source: `E2E-C-${RUN}`, destination: `E2E-D-${RUN}`, price_per_kg: 3 } });
+  r = await call('POST', '/vehicles/shared-booking', { ...M, body: { route_id: r.body.data?.id, pickup_location: `E2E-C-${RUN}`, delivery_location: `E2E-D-${RUN}`, weight: 200, planned_distance: 15 } });
+  expect('booking onto a moving truck is accepted straight away', r, 201, (b) => b.data.status === 'Dispatched' && b.data.driver_id === driver.id);
+  const tShared = r.body.data;
+  const vehicleStatus = async () => (await call('GET', `/vehicles/${vehicle.id}`, M)).body.data.status;
+  expect('complete one shipment', await call('POST', `/trips/${tA.id}/complete`, { ...M, body: { final_odometer: 200, fuel_consumed_liters: 3 } }), 200, (b) => /stays On Trip/.test(b.message));
+  check('truck stays On Trip while shipments remain', (await vehicleStatus()) === 'On Trip', await vehicleStatus());
+  expect('cancel another shipment', await call('POST', `/trips/${tB.id}/cancel`, M), 200);
+  check('truck still On Trip (booking on board)', (await vehicleStatus()) === 'On Trip');
+  expect('complete the last shipment', await call('POST', `/trips/${tShared.id}/complete`, { ...M, body: { final_odometer: 190, fuel_consumed_liters: 2 } }), 200, (b) => /restored to Available/.test(b.message));
+  const vNow = (await call('GET', `/vehicles/${vehicle.id}`, M)).body.data;
+  check('truck free after the last shipment, odometer not wound back', vNow.status === 'Available' && Number(vNow.odometer) === 200, vNow);
+  expect('driver free again', await call('GET', `/drivers/${driver.id}`, M), 200, (b) => b.data.status === 'Available');
+
+  section('License renewal');
+  r = await call('POST', '/drivers', { ...M, body: { name: `E2E Expired ${RUN}`, license_number: `E2E-DL3-${RUN}`, license_category: 'LMV', license_expiry_date: '2024-01-01', contact_number: '9000000002' } });
+  const expired = r.body.data;
+  created.drivers.push(expired?.id);
+  expect('suspend driver with expired license', await call('PUT', `/drivers/${expired.id}`, { ...M, body: { status: 'Suspended' } }), 200);
+  expect('cannot make available while license is expired', await call('PUT', `/drivers/${expired.id}`, { ...M, body: { status: 'Available' } }), 400, (b) => /License expired/.test(b.message));
+  expect('cannot set On Trip by hand', await call('PUT', `/drivers/${expired.id}`, { ...M, body: { status: 'On Trip' } }), 400);
+  expect('invalid expiry date rejected', await call('PUT', `/drivers/${expired.id}`, { ...M, body: { license_expiry_date: 'soon' } }), 400);
+  expect('renew license and reactivate', await call('PUT', `/drivers/${expired.id}`, { token: tokens.safety, body: { license_number: `E2E-DL3R-${RUN}`, license_expiry_date: '2031-03-31', status: 'Available' } }), 200,
+    (b) => b.data.status === 'Available' && b.data.license_expiry_date === '2031-03-31');
+  expect('renewed driver is eligible for dispatch', await call('GET', '/drivers/eligible-for-dispatch', M), 200, (b) => b.data.some((d) => d.id === expired.id));
+
   section('Reports');
   expect('dashboard KPIs', await call('GET', '/reports/dashboard', M), 200, (b) => b.success === true);
   r = await call('GET', '/reports/export', M);
@@ -176,8 +203,8 @@ async function run() {
 
   section('Delete account');
   expect('wrong password keeps account', await call('DELETE', '/auth/me', { token, body: { password: 'nope' } }), 400);
-  expect('delete account', await call('DELETE', '/auth/me', { token, body: { password: 'NewPassw0rd' } }), 200);
-  expect('deleted user cannot sign in', await call('POST', '/auth/login', { body: { email, password: 'NewPassw0rd' } }), 401);
+  expect('delete account', await call('DELETE', '/auth/me', { token, body: { password: 'Passw0rd1' } }), 200);
+  expect('deleted user cannot sign in', await call('POST', '/auth/login', { body: { email, password: 'Passw0rd1' } }), 401);
   expect('deleted user token rejected', await call('GET', '/auth/verify', { token }), 401);
 }
 

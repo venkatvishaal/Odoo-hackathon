@@ -150,6 +150,11 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
+  // Without a secret, tokens would be signed with nothing (or a guessable default) and could be forged.
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET is not set. Refusing to start: add it to backend/.env (local) or the Render environment.');
+    process.exit(1);
+  }
   try {
     await sequelize.authenticate();
     console.log('Database connection has been established successfully.');

@@ -238,7 +238,8 @@ export default function TripPlanner() {
   const handleDispatch = async (id) => {
     const res = await dispatch(dispatchTrip(id));
     if (dispatchTrip.fulfilled.match(res)) {
-      toast.success('Trip dispatched successfully. Vehicle & Driver status updated.');
+      toast.success(res.meta.message || 'Trip dispatched successfully. Vehicle & Driver status updated.');
+      dispatch(fetchTrips());
     } else {
       toast.error(res.payload || 'Failed to dispatch');
     }
@@ -260,7 +261,7 @@ export default function TripPlanner() {
     const trip = showCompleteModal;
     const res = await dispatch(completeTrip({ id: trip.id, data: completeForm }));
     if (completeTrip.fulfilled.match(res)) {
-      toast.success('Trip completed successfully. Vehicle odometer & logs updated.');
+      toast.success(res.meta.message || 'Trip completed successfully. Vehicle odometer & logs updated.');
       setShowCompleteModal(null);
       setCompleteForm({ final_odometer: '', fuel_consumed_liters: '' });
       dispatch(fetchTrips());

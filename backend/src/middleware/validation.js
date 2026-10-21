@@ -37,19 +37,6 @@ const validators = {
     body('password').notEmpty().withMessage('Password is required')
   ],
 
-  emailOnly: [
-    body('email').isEmail().withMessage('Valid email is required')
-  ],
-
-  token: [
-    body('token').isString().notEmpty().withMessage('The link is missing its token')
-  ],
-
-  resetPassword: [
-    body('token').isString().notEmpty().withMessage('The link is missing its token'),
-    newPassword()
-  ],
-
   createVehicle: [
     body('registration_number').trim().notEmpty().withMessage('Registration number is required'),
     body('model_name').trim().notEmpty().withMessage('Model name is required'),
@@ -68,6 +55,18 @@ const validators = {
     body('license_expiry_date').isISO8601().withMessage('Valid date required (YYYY-MM-DD)'),
     body('contact_number').notEmpty().withMessage('Contact number is required'),
     body('safety_score').optional().isFloat({ min: 0, max: 10 }).withMessage('Safety score must be 0-10')
+  ],
+
+  updateDriver: [
+    body('name').optional().trim().notEmpty().withMessage('Name cannot be empty'),
+    body('license_number').optional().trim().notEmpty().withMessage('License number cannot be empty'),
+    body('license_category').optional().trim().notEmpty().withMessage('License category cannot be empty'),
+    body('license_expiry_date').optional().isISO8601().withMessage('Valid date required (YYYY-MM-DD)'),
+    body('contact_number').optional().trim().notEmpty().withMessage('Contact number cannot be empty'),
+    body('safety_score').optional().isFloat({ min: 0, max: 10 }).withMessage('Safety score must be 0-10'),
+    // "On Trip" is only ever set by dispatching a trip.
+    body('status').optional().isIn(['Available', 'Off Duty', 'Suspended'])
+      .withMessage('Status must be Available, Off Duty or Suspended')
   ],
 
   createTrip: [

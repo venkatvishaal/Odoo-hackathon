@@ -27,10 +27,11 @@ export const createTrip = createAsyncThunk(
 
 export const dispatchTrip = createAsyncThunk(
   'trips/dispatch',
-  async (id, { rejectWithValue }) => {
+  async (id, { rejectWithValue, fulfillWithValue }) => {
     try {
       const res = await tripService.dispatch(id);
-      return res.data.data;
+      // The server's message says whether the trip joined a truck already en route.
+      return fulfillWithValue(res.data.data, { message: res.data.message });
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || 'Failed to dispatch trip');
     }
@@ -39,10 +40,11 @@ export const dispatchTrip = createAsyncThunk(
 
 export const completeTrip = createAsyncThunk(
   'trips/complete',
-  async ({ id, data }, { rejectWithValue }) => {
+  async ({ id, data }, { rejectWithValue, fulfillWithValue }) => {
     try {
       const res = await tripService.complete(id, data);
-      return res.data.data;
+      // The server's message says whether the truck is free or still has shipments on board.
+      return fulfillWithValue(res.data.data, { message: res.data.message });
     } catch (err) {
       return rejectWithValue(err.response?.data || { message: 'Failed to complete trip' });
     }
