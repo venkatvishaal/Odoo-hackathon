@@ -58,6 +58,11 @@ Browser ──HTTPS──▶ Vercel (frontend/build)
    DATABASE_URL="<your neon url>" npm run db:migrate-auth
    ```
    Until this has run, the API logs `Row-level security is OFF` at startup.
+6. **Existing databases only:** refresh the Reports cost view (it now adds tolls and other expenses to each vehicle's operational cost):
+   ```bash
+   cd backend
+   DATABASE_URL="<your neon url>" npm run db:view
+   ```
 
 ### Backups
 - **Neon point-in-time restore** is built in (Neon → Branches → Restore). The free plan keeps a short history window, so also:

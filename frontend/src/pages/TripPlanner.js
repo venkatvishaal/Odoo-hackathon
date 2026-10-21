@@ -164,6 +164,8 @@ export default function TripPlanner() {
 
   // ── Stop Live Tracking ────────────────────────────────────────
   const stopLiveTracking = useCallback(() => {
+    // Also runs on unmount; stay quiet when tracking was never started.
+    if (watchIdRef.current === null && !liveSocketRef.current) return;
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;

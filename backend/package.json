@@ -9,7 +9,9 @@
     "db:seed": "node src/scripts/seed.js",
     "db:sync": "node src/utils/dbSync.js",
     "db:migrate-auth": "node src/scripts/migrateAuth.js",
-    "test": "node --test \"src/**/*.test.js\""
+    "db:view": "node src/scripts/createView.js",
+    "test": "node --test \"src/**/*.test.js\"",
+    "test:e2e": "node src/scripts/e2e.js"
   },
   "dependencies": {
     "@sentry/node": "^11.8.0",

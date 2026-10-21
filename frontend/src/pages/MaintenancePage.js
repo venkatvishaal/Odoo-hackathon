@@ -75,13 +75,19 @@ export default function MaintenancePage() {
     }
   };
 
-  const handleCloseLog = async (id) => {
-    const costInput = window.prompt('Enter final maintenance cost (INR):', '0');
+  const handleCloseLog = async (log) => {
+    // Pre-fill the estimate so pressing OK doesn't wipe it to 0.
+    const costInput = window.prompt('Enter final maintenance cost (INR):', String(log.cost ?? ''));
     if (costInput === null) return; // cancel pressed
 
-    const cost = parseFloat(costInput) || 0;
+    const cost = parseFloat(costInput);
+    if (costInput.trim() !== '' && (isNaN(cost) || cost < 0)) {
+      toast.error('Cost must be a number of 0 or more.');
+      return;
+    }
     try {
-      await maintenanceService.close(id, { cost });
+      // Blank input keeps the scheduled cost (backend leaves it unchanged when cost is omitted).
+      await maintenanceService.close(log.id, costInput.trim() === '' ? {} : { cost });
       toast.success('Maintenance closed. Vehicle restored to "Available".');
       fetchLogs();
     } catch (err) {
@@ -143,7 +149,7 @@ export default function MaintenancePage() {
                     </div>
                     {log.status === 'open' && (
                       <button 
-                        onClick={() => handleCloseLog(log.id)}
+                        onClick={() => handleCloseLog(log)}
                         className="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition flex items-center gap-1 shadow-sm"
                       >
                         <FaTools /> Close File

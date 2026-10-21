@@ -28,6 +28,7 @@ function reportTables(data) {
     acquisition: num(c.acquisition_cost),
     fuel: num(c.total_fuel_cost),
     maintenance: num(c.total_maintenance_cost),
+    expenses: num(c.total_expense_cost),
     total: num(c.total_operational_cost),
     ratio: Number(assetRatio(c).toFixed(1)),
   }));
@@ -38,7 +39,7 @@ function reportTables(data) {
     kmpl: num(e.efficiency),
   }));
   const sum = (key) => costs.reduce((a, r) => a + r[key], 0);
-  const costTotals = { vehicle: `Total (${costs.length})`, acquisition: sum('acquisition'), fuel: sum('fuel'), maintenance: sum('maintenance'), total: sum('total') };
+  const costTotals = { vehicle: `Total (${costs.length})`, acquisition: sum('acquisition'), fuel: sum('fuel'), maintenance: sum('maintenance'), expenses: sum('expenses'), total: sum('total') };
   return { summary, costs, efficiency, costTotals };
 }
 
@@ -80,6 +81,7 @@ export default function ReportsPage() {
               columns: [
                 { header: 'Vehicle', key: 'vehicle', width: 18 }, { header: 'Model', key: 'model', width: 22 },
                 { header: 'Fuel Cost', key: 'fuel', width: 14, numFmt: money }, { header: 'Maintenance Cost', key: 'maintenance', width: 18, numFmt: money },
+                { header: 'Tolls & Other', key: 'expenses', width: 16, numFmt: money },
                 { header: 'Total Operational Cost', key: 'total', width: 22, numFmt: money },
               ],
               rows: costs, totals: costTotals,
@@ -112,9 +114,9 @@ export default function ReportsPage() {
           sections: [
             {
               heading: 'Operational Costs by Vehicle',
-              columns: ['Vehicle', 'Model', 'Fuel Cost', 'Maintenance Cost', 'Total Operational Cost'],
-              rows: costs.map((r) => [r.vehicle, r.model, pdfMoney(r.fuel), pdfMoney(r.maintenance), pdfMoney(r.total)]),
-              totals: [costTotals.vehicle, '', pdfMoney(costTotals.fuel), pdfMoney(costTotals.maintenance), pdfMoney(costTotals.total)],
+              columns: ['Vehicle', 'Model', 'Fuel Cost', 'Maintenance Cost', 'Tolls & Other', 'Total Operational Cost'],
+              rows: costs.map((r) => [r.vehicle, r.model, pdfMoney(r.fuel), pdfMoney(r.maintenance), pdfMoney(r.expenses), pdfMoney(r.total)]),
+              totals: [costTotals.vehicle, '', pdfMoney(costTotals.fuel), pdfMoney(costTotals.maintenance), pdfMoney(costTotals.expenses), pdfMoney(costTotals.total)],
             },
             {
               heading: 'Fuel Efficiency (completed trips)',
@@ -152,7 +154,8 @@ export default function ReportsPage() {
   const costBreakdownData = data.operationalCosts.map(item => ({
     name: item.registration_number,
     'Fuel Cost': parseFloat(item.total_fuel_cost),
-    'Maintenance Cost': parseFloat(item.total_maintenance_cost)
+    'Maintenance Cost': parseFloat(item.total_maintenance_cost),
+    'Tolls & Other': parseFloat(item.total_expense_cost || 0)
   }));
 
   // Formatting Fuel Efficiency
@@ -260,7 +263,8 @@ export default function ReportsPage() {
                   <Tooltip />
                   <Legend />
                   <Bar dataKey="Fuel Cost" stackId="a" fill="#3B82F6" />
-                  <Bar dataKey="Maintenance Cost" stackId="a" fill="#F59E0B" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Maintenance Cost" stackId="a" fill="#F59E0B" />
+                  <Bar dataKey="Tolls & Other" stackId="a" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

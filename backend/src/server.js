@@ -56,9 +56,10 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '1mb' }));
 
 // General API ceiling per IP; auth routes add a much stricter one (routes/auth.js).
+// Generous because a whole depot can share one IP and each page load makes several calls.
 app.use('/api', rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 300,
+  limit: 3000,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests. Please slow down and try again in a few minutes.' }
