@@ -105,6 +105,7 @@ io.on('connection', (socket) => {
 // Routes
 
 // Unauthenticated liveness probe for Render health checks / uptime pingers.
+app.get('/', (req, res) => res.json({ name: 'TransitOps API', status: 'online', health: '/api/health' }));
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
 app.use('/api/auth', authRoutes);
