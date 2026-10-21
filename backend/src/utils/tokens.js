@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const secret = () => process.env.JWT_SECRET;
+const secret = () => process.env.JWT_SECRET || 'transitops_jwt_secret_change_in_prod';
 
 // `tv` = users.token_version. Bumping it (logout, password reset, delete) kills every token issued before.
 const signSession = (user, roleName) => jwt.sign(
