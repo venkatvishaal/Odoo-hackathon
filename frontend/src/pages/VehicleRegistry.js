@@ -134,6 +134,8 @@ export default function VehicleRegistry() {
                       <button 
                         onClick={() => handleDelete(v.id)}
                         className="text-red-500 hover:bg-red-50 p-2 rounded-full transition"
+                        aria-label={`Remove ${v.registration_number}`}
+                        title="Remove vehicle"
                       >
                         <FaTrash />
                       </button>
